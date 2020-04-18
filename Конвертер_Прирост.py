@@ -7,20 +7,23 @@ from module.analiz_data import *
 
 from tkinter.filedialog import askopenfilename
 from tkinter import Tk
-
-Tk().withdraw()
+# Tk().withdraw()
+root = Tk()
+root.withdraw()
 
 # %%
 # Выбор файла, созданного Аванкор
 print(f'Выбор файла, созданного в Аванкор...')
 # show an "Open" dialog box and return the path to the selected file
-file_avancor = askopenfilename(filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
+file_avancor = askopenfilename(initialdir="./#Отчетность",
+                               title="Выбор файла, созданного в Аванкор...",
+                               filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
 # Имя файла без пути к нему
 print(f'...выбран файл: {os.path.basename(file_avancor)}')
 
 # Загружаем данные из файла Аванкор
 df_avancor = pd.read_excel(file_avancor, sheet_name='TDSheet', header=None)
-# устанавливаем начальный индекс не c 0, а c 1
+# устанавливаем начальный индекс не c '0', а c '1'
 df_avancor.index += 1
 df_avancor.columns += 1
 
@@ -39,7 +42,8 @@ for row in range(row_start_av, row_end_av + 1):
 # Выбор файла таблицы xbrl
 print(f'Выбор файла таблицы xbrl c ЗАГРУЖЕННЫМИ(!) данными СЧА')
 # show an "Open" dialog box and return the path to the selected file
-file_open = askopenfilename(filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
+file_open = askopenfilename(title="Выбор файла таблицы xbrl c ЗАГРУЖЕННЫМИ(!) данными СЧА...",
+                            filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
 # Имя файла без пути к нему
 file_xbrl = os.path.basename(file_open)
 print(f'...выбран файл: {file_xbrl}')
@@ -80,3 +84,5 @@ except PermissionError:
           f'(файл открыт в другой программе - закройте файл!)\n'
           f'{"=" * 100} ')
     input()
+
+# root.destroy()

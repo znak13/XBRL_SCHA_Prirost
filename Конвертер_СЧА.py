@@ -10,8 +10,9 @@ import os
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 # from tkinter import messagebox
 from tkinter import Tk
-
-Tk().withdraw()
+# Tk().withdraw()
+root = Tk()
+root.withdraw()
 
 from module.analiz_data import *
 from module.adjustments import *
@@ -57,7 +58,7 @@ def insert_id(ws, id_row, id_cols, df_id, rows_numbers, row_begin, col_begin, id
     # словарь ВСЕХ названий идетификаторов (полные) и имен вкладок (сокращенные)
     list_id = {(df_id[k].loc[0, 0]): k for k in df_id.keys()}
     # если ошибка в этой строке, то проверить названеи вкладок в файле с идентификаторами
-    #...
+    # ...
 
     # список идентификаторов на листе
     id_on_list = [ws.cell(id_row, col).value for col in id_cols]
@@ -271,7 +272,9 @@ def file_open(df_id):
     print(f'Выбираем файл, сформированный Аванкор....'
           f'(файл должен начинаться с идентификатора фонда)')
     # show an "Open" dialog box and return the path to the selected file
-    file_open = askopenfilename(filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
+    file_open = askopenfilename(initialdir="./#Отчетность",
+                                title="Выбираем файл, сформированный Аванкор....",
+                                filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
     # Имя файла без пути к нему
     file_avancor = os.path.basename(file_open)
     # Имя файла без расширения (идентификатор фонда)
@@ -495,7 +498,8 @@ collumn_max = df_avancor.shape[1]
 # --------------------------------------------
 # название нового файла-отчетности xbrl
 print(f'Имя нового файла отчетности....: ', end='')
-file_fond_name = asksaveasfilename(filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
+file_fond_name = asksaveasfilename(title="Имя нового файла отчетности...",
+                                   filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
 # Добавляем расширение файла
 file_fond_name = file_fond_name + '.xlsx'
 # отбрасываем путь к файлу
