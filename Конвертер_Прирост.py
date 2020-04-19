@@ -2,7 +2,7 @@ import pandas as pd
 import openpyxl
 import os
 from openpyxl.styles import Alignment
-
+import sys
 from module.analiz_data import *
 
 from tkinter.filedialog import askopenfilename
@@ -12,14 +12,19 @@ root = Tk()
 root.withdraw()
 
 # %%
+reportDir = "./#Отчетность"
 # Выбор файла, созданного Аванкор
 print(f'Выбор файла, созданного в Аванкор...')
 # show an "Open" dialog box and return the path to the selected file
-file_avancor = askopenfilename(initialdir="./#Отчетность",
+file_avancor = askopenfilename(initialdir=reportDir,
                                title="Выбор файла, созданного в Аванкор...",
                                filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
 # Имя файла без пути к нему
-print(f'...выбран файл: {os.path.basename(file_avancor)}')
+if file_avancor:
+    print(f'...выбран файл: {os.path.basename(file_avancor)}')
+else:
+    print(f'...файл не выбран')
+    sys.exit()
 
 # Загружаем данные из файла Аванкор
 df_avancor = pd.read_excel(file_avancor, sheet_name='TDSheet', header=None)
@@ -42,12 +47,10 @@ for row in range(row_start_av, row_end_av + 1):
 # Выбор файла таблицы xbrl
 print(f'Выбор файла таблицы xbrl c ЗАГРУЖЕННЫМИ(!) данными СЧА')
 # show an "Open" dialog box and return the path to the selected file
-file_open = askopenfilename(title="Выбор файла таблицы xbrl c ЗАГРУЖЕННЫМИ(!) данными СЧА...",
+file_xbrl = askopenfilename(title="Выбор файла таблицы xbrl c ЗАГРУЖЕННЫМИ(!) данными СЧА...",
                             filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
 # Имя файла без пути к нему
-file_xbrl = os.path.basename(file_open)
-print(f'...выбран файл: {file_xbrl}')
-file_xbrl = file_open
+print(f'...выбран файл: {os.path.basename(file_xbrl)}')
 
 # Загружаем данные из файла таблицы xbrl
 # file_xbrl = '0420502_0420503_Квартал_ЗПИФ_Дон.xlsx'
@@ -62,13 +65,11 @@ col_3_xbrl = 3
 for row in range(row_start_xbrl, row_end_xbrl + 1):
     # номер строки в xbrl
     cell = ws_xbrl.cell(row, col_2_xbrl).value
-    # сравниваем номера строк в Авенкоре и xbrl
+    # сравниваем номера строк в Аванкоре и xbrl
     if cell in data.keys():
         ws_xbrl.cell(row, col_3_xbrl).value = data[cell]
         # Форматируем ячейку
         ws_xbrl.cell(row, col_3_xbrl).alignment = Alignment(horizontal='right')
-
-        # print (ws_xbrl.cell(row, col_2_xbrl).value, '\t', ws_xbrl.cell(row, col_3_xbrl).value)
 
 # %%
 
