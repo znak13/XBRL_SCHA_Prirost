@@ -141,4 +141,63 @@ def find_columns_numbers(df_avancor, collumn_max, max_number, data_row, data_col
     return column
 
 # %%
+
+def codesSheets(wb):
+    """ Список кодов и наименования листов """
+    codes_sheets = {}
+    for sheet in wb.sheetnames:
+        ws_xbrl = wb[sheet]
+        ws_xbrl_cell = ws_xbrl.cell(3, 1)
+        codes_sheets[ws_xbrl_cell.value] = sheet
+        # print(sheet, ws_xbrl_cell.value)
+
+    # исключаем из списка вкладку '_dropDownSheet'
+    for code in codes_sheets:
+        if codes_sheets[code] == '_dropDownSheet':
+            codes_sheets.pop(code)
+            break
+
+    return codes_sheets
+
+def sheetsCodes(wb):
+    """ Список наименования листов и их URL  """
+    sheets_codes = {}
+    for sheet in wb.sheetnames:
+        ws_xbrl = wb[sheet]
+        ws_xbrl_cell = ws_xbrl.cell(3, 1)
+        sheets_codes [sheet] = ws_xbrl_cell.value
+        # print(sheet, ws_xbrl_cell.value)
+
+    # исключаем из списка вкладку '_dropDownSheet'
+    for sheet in sheets_codes:
+        if sheet == '_dropDownSheet':
+            sheets_codes.pop(sheet)
+            break
+
+    return sheets_codes
 # %%
+
+
+if __name__ == "__main__":
+    import openpyxl
+
+    file_name = r"d:\Clouds\YandexDisk\Git\XBRL_SCHA_Prirost\0420502_0420503.xlsx"
+    # Загружаем данные из файла таблицы xbrl
+    wb = openpyxl.load_workbook(filename=file_name)
+
+    codes_sheets = codesSheets(wb)
+    sheets_codes = sheetsCodes(wb)
+
+    code_PZ_5 = 'SR_0420502_PZ_inf_treb_i_obyaz_opz_fiuch_2'
+
+    sheets_PZ=[]
+    for code in codes_sheets:
+        if ("_PZ_" in code) and (code_PZ_5 not in code):
+            sheets_PZ.append(codes_sheets[code])
+
+    sheets_PZ2=[]
+    for sheet in sheets_codes:
+        code = sheets_codes[sheet]
+        if ("_PZ_" in code) and (code_PZ_5 not in code):
+            sheets_PZ2.append(sheet)
+
