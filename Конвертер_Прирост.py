@@ -4,6 +4,7 @@ import os
 from openpyxl.styles import Alignment
 import sys
 from module.analiz_data import *
+import module.functions as fun
 
 from tkinter.filedialog import askopenfilename
 from tkinter import Tk
@@ -56,6 +57,11 @@ print(f'...выбран файл: {os.path.basename(file_xbrl)}')
 # file_xbrl = '0420502_0420503_Квартал_ЗПИФ_Дон.xlsx'
 wb_xbrl = openpyxl.load_workbook(filename=file_xbrl)
 # заполняем только одну форму (!)
+
+# 0420503 Отчет о приросте об у_4 - SR_0420503_R3
+urlSheets = fun.codesSheets(wb_xbrl)
+sheetName = fun.sheetNameFromUrl(urlSheets, 'SR_0420503_R3')
+
 ws_xbrl = wb_xbrl['0420503 Отчет о приросте об у_4']
 row_start_xbrl = 7
 row_end_xbrl = 54

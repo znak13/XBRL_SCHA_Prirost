@@ -10,6 +10,7 @@ import os
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 # from tkinter import messagebox
 from tkinter import Tk
+
 # Tk().withdraw()
 root = Tk()
 root.withdraw()
@@ -17,7 +18,7 @@ root.withdraw()
 from module.analiz_data import *
 from module.adjustments import *
 from module.functions import *
-
+from module.dataLoad import load_data, ERRORS
 
 # from openpyxl.utils import get_column_letter
 # from copy import copy
@@ -25,7 +26,6 @@ from module.functions import *
 
 # %%
 
-# %%
 
 def copy_data(ws, df_avancor, rows_numbers, columns_numbers, row_begin, col_begin):
     """ Копирование данных из таблицы Аванкор в таблицу XBRL """
@@ -126,7 +126,10 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond):
                 # (отнимаем "2",т.к. в списке 'df_priznak_list' элементф начинаются с "0")
                 df_priznak, id_priznak = round_id(df_priznak_list[n - 2], n + 1, id_fond=id_fond)
                 # идентификатор - это превый элемент в 'df_priznak'
-                id_is = df_priznak[0].values[0]
+                try:
+                    id_is = df_priznak[0].values[0]
+                except Exception:
+                    ERRORS.append(f'ERROR! - в файле "Идентификаторы" не указан расчетный счет фонда')
             else:
                 id_is = 'ошибка'
                 print('------>ERROR!', round_id.__name__)
@@ -142,7 +145,7 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond):
         id_is = 'ошибка'
         print('.......ERROR!.......')
         print('Идентификатор не найден')
-        ERRORS.append(f'Идентификатор не найден: \n'
+        ERRORS.append(f'Идентификатор не найден: '
                       f'"{ws.title}", "{df_id_ws.loc[0, 0]}", строка:{row_i}')
 
         return id_is
@@ -154,72 +157,58 @@ def copy_id_fond_to_tbl(wb_xbrl, id_fond):
     """Записываем во все формы идентификатор фонда"""
 
     # Выбираем вкладки, содержащие идентификатор фонда
+    urlSheets = codesSheets(wb_xbrl)
     # список всех вкладок
-    sheet_2_with_id_fond = wb_xbrl.sheetnames
+    sheet_2_with_id_fond = list(urlSheets.values())
+    # sheet_2_with_id_fond = wb_xbrl.sheetnames
+
     # удаляем из списка вкладки, не содержащие идентификатор фонда
-    sheet_2_with_id_fond.remove('0420502 Справка о стоимости чис')
-    sheet_2_with_id_fond.remove('0420502 Справка о стоимости _56')
-    sheet_2_with_id_fond.remove('0420502 Справка о стоимости _57')
-    sheet_2_with_id_fond.remove('_dropDownSheet')
+    # 0420502 Справка о стоимости чис - SR_0420502_R1
+    # 0420502 Справка о стоимости _56 - SR_0420502_Podpisant
+    # 0420502 Справка о стоимости _57 - SR_0420502_Podpisant_spec_dep
+    sheet_2_with_id_fond.remove(sheetNameFromUrl(urlSheets, 'SR_0420502_R1'))
+    sheet_2_with_id_fond.remove(sheetNameFromUrl(urlSheets, 'SR_0420502_Podpisant'))
+    sheet_2_with_id_fond.remove(sheetNameFromUrl(urlSheets, 'SR_0420502_Podpisant_spec_dep'))
 
     # Записываем в выбранные вкладки идентификатор фонда
     for form in sheet_2_with_id_fond:
         ws = wb_xbrl[form]
-        # записывает во все таблицы xbrl идентификатор фонда
-        ws.cell(row=5, column=ws.max_column).value = 'Z= Идентификатор АИФ ПИФ-' + id_fond
+        # Записываем во все таблицы xbrl идентификатор фонда
+        # Во всех формах идентификатор фонда содержится
+        # в строке "5" и в крайней правой колонке,
+        # а текст в ячейке начинается с 'Z= Идентификатор АИФ ПИФ-'
+        cell_id = ws.cell(row=5, column=ws.max_column)
+        info = 'Z= Идентификатор АИФ ПИФ-'
+        if info in cell_id.value:
+            cell_id.value = info + id_fond
 
 
 # %%
 
-def load_matrica():
-    """загружвем данные из матрицы"""
-    file_matrica = r'./Шаблоны/Матрица.xlsx'
-    df_matrica = pd.read_excel(file_matrica, sheet_name='0420502', index_col=1)
-    # df_matrica.head(3)
-    return df_matrica
+# def load_matrica(folder='./Шаблоны/', sheet_name='0420502', index_col=1):
+#     """загружвем данные из матрицы"""
+#     fileName = 'Матрица.xlsx'
+#     file_matrica = folder + fileName
+#     df_matrica = pd.read_excel(file_matrica, sheet_name=sheet_name, index_col=index_col)
+#     # df_matrica.head(3)
+#     return df_matrica
 
 
 # %%
 
-def load_avancor(file_avancor):
-    # загружвем данные из отчета таблицы Аванкор
-
-    df_avancor = pd.read_excel(file_avancor, sheet_name='TDSheet', header=None)
-
-    # устанавливаем начальный индекс не c 0, а c 1
-    df_avancor.index += 1
-    df_avancor.columns += 1
-
-    return df_avancor
+# def load_avancor(file_avancor):
+#     # загружвем данные из отчета таблицы Аванкор
+#
+#     df_avancor = pd.read_excel(file_avancor, sheet_name='TDSheet', header=None)
+#
+#     # устанавливаем начальный индекс не c 0, а c 1
+#     df_avancor.index += 1
+#     df_avancor.columns += 1
+#
+#     return df_avancor
 
 
 # %%
-
-def copy_period(wb_xbrl, df_avancor, df_matrica):
-    """ Вставляем данные о периоде отчетности """
-    # Формы:
-    # 0420502 Справка о стоимости ч_2
-    # 0420502 Справка о стоимости ч_3
-    # 0420502 Справка о стоимости ч_4
-    # 0420502 Справка о стоимости ч_5
-    # 0420502 Справка о стоимости ч_6
-    # 0420502 Справка о стоимости ч_7
-    # 0420502 Справка о стоимости ч_8
-    # 0420502 Справка о стоимости ч_9
-    # 0420502 Справка о стоимости _10
-    # 0420502 Справка о стоимости _11
-    # 0420502 Справка о стоимости _12
-
-    period_begin = analiz_data_data(df_avancor.loc[18, 1])
-    period_end = analiz_data_data(df_avancor.loc[18, 5])
-
-    sheet_xbrl_period = wb_xbrl.sheetnames[8:18]
-
-    for sheet in sheet_xbrl_period:
-        ws_period = wb_xbrl[sheet]
-        cell_period = df_matrica.loc[sheet, 'cell_period']
-        ws_period[cell_period].value = period_begin + ', ' + period_end
-
 
 # %%
 
@@ -245,91 +234,91 @@ def find_parametr(ws, row_begin, col):
 
     for row in range(1, 10):
         cell = ws.cell(row_begin - row, col).value
-        if str(cell).isdigit():
+
+        # в пояснительной записке №3 вместо номера столбца укзано "Содержание"
+        if str(cell).isdigit() or str(cell) == "Содержание":
+            # название столбца находится на строчку выше
             row_param = row_begin - row - 1
+            cell = ws.cell(row_param, col).value
+            return cell
+        # в пояснительной записке №2 нет номера столбца
+        if str(cell).startswith('Сведения о событиях'):
+            # название столбца находится в этой ячейке
+            row_param = row_begin - row
             cell = ws.cell(row_param, col).value
             return cell
 
 
-# def write_errors(ERRORS, errors_file):
-#     """ Записываем ошибки в файл"""
-#     if not ERRORS:
-#         ERRORS.append('Ошибок не выявлено!')
-#     with open(errors_file, "w") as file:
-#         for k in ERRORS:
-#             file.write(str(k) + '\n\n')
+# %%
+
+# def file_open(df_id):
+#     """ Выбор файла, созданного в Аванкор"""
+#
+#     # Список всех идентификаторой фондов
+#     all_id_fond = df_id['ПИФ'][0][1:].to_list()
+#
+#     # Выбираем файл, сформированный Аванкор
+#     print(f'Выбираем файл, сформированный Аванкор....'
+#           f'(файл должен начинаться с идентификатора фонда)')
+#     # show an "Open" dialog box and return the path to the selected file
+#     file_open = askopenfilename(initialdir="./#Отчетность",
+#                                 title="Выбираем файл, сформированный Аванкор....",
+#                                 filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
+#     # Имя файла без пути к нему
+#     file_avancor = os.path.basename(file_open)
+#     # Имя файла без расширения (идентификатор фонда)
+#     id_fond = os.path.splitext(file_avancor)[0]
+#
+#     id_fond = id_fond.split('_', 2)
+#     id_fond = '_'.join(id_fond[:2])
+#
+#     # Если в названии файла нет идентификатора, то прерываем программу
+#     if not (id_fond in all_id_fond):
+#         print('.......ERROR!.......')
+#         ERRORS.append(f'{"=" * 100}\n'
+#                       f'Файл не сформирован!\n'
+#                       f'В названии файла: "{file_avancor}" неверно указан идентификатор фонда!\n'
+#                       f'(проверьте название файла)\n'
+#                       f'{"=" * 100}')
+#         write_errors(ERRORS, errors_file)
+#         sys.exit("Ошибка в имени файла!")
+#
+#     print(f'выбран файл: {file_avancor}')
+#     return file_open, id_fond
 
 
 # %%
 
-def file_open(df_id):
-    """ Выбор файла, созданного в Аванкор"""
-
-    # Список всех идентификаторой фондов
-    all_id_fond = df_id['ПИФ'][0][1:].to_list()
-
-    # Выбираем файл, сформированный Аванкор
-    print(f'Выбираем файл, сформированный Аванкор....'
-          f'(файл должен начинаться с идентификатора фонда)')
-    # show an "Open" dialog box and return the path to the selected file
-    file_open = askopenfilename(initialdir="./#Отчетность",
-                                title="Выбираем файл, сформированный Аванкор....",
-                                filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
-    # Имя файла без пути к нему
-    file_avancor = os.path.basename(file_open)
-    # Имя файла без расширения (идентификатор фонда)
-    id_fond = os.path.splitext(file_avancor)[0]
-
-    id_fond = id_fond.split('_', 2)
-    id_fond = '_'.join(id_fond[:2])
-
-    # Если в названии файла нет идентификатора, то прерываем программу
-    if not (id_fond in all_id_fond):
-        print('.......ERROR!.......')
-        ERRORS.append(f'{"=" * 100}\n'
-                      f'Файл не сформирован!\n'
-                      f'В названии файла: "{file_avancor}" неверно указан идентификатор фонда!\n'
-                      f'(проверьте название файла)\n'
-                      f'{"=" * 100}')
-        write_errors(ERRORS, errors_file)
-        sys.exit("Ошибка в имени файла!")
-
-    print(f'выбран файл: {file_avancor}')
-    return file_open, id_fond
-
-
-# %%
-
-def insert_00(ws):
-    """ Проставляем нулевые значения в форме '0420502 Справка о стоимости ч_3' """
-
-    def perebor(cell: str, col: int):
-        """ Перебор колонок и проставление нулей """
-        if cell:  # есть данные
-            if not ws.cell(row, col + 2).value:  # в колонке с 'долей' нет данных
-                ws.cell(row, col + 2).value = '0.00'
-        else:
-            ws.cell(row, col).value = '0.00'
-            ws.cell(row, col + 2).value = '0.00'
-
-    row_begin = 10
-    col_1 = 3  # номер первой колонки с данными
-
-    for row in range(row_begin, ws.max_row + 1):
-        cell_1 = ws.cell(row, col_1).value
-        cell_2 = ws.cell(row, col_1 + 1).value
-        cell_3 = ws.cell(row, col_1 + 2).value
-        cell_4 = ws.cell(row, col_1 + 3).value
-
-        if cell_1 or cell_2:  # Если есть данные в одной из ячеек
-            if not cell_1:
-                ws.cell(row, col_1).value = '0.00'
-            if not cell_2:
-                ws.cell(row, col_1 + 1).value = '0.00'
-            if not cell_3:
-                ws.cell(row, col_1 + 2).value = '0.00'
-            if not cell_4:
-                ws.cell(row, col_1 + 3).value = '0.00'
+# def insert_00(ws):
+#     """ Проставляем нулевые значения в форме '0420502 Справка о стоимости ч_3' """
+#
+#     def perebor(cell: str, col: int):
+#         """ Перебор колонок и проставление нулей """
+#         if cell:  # есть данные
+#             if not ws.cell(row, col + 2).value:  # в колонке с 'долей' нет данных
+#                 ws.cell(row, col + 2).value = '0.00'
+#         else:
+#             ws.cell(row, col).value = '0.00'
+#             ws.cell(row, col + 2).value = '0.00'
+#
+#     row_begin = 10
+#     col_1 = 3  # номер первой колонки с данными
+#
+#     for row in range(row_begin, ws.max_row + 1):
+#         cell_1 = ws.cell(row, col_1).value
+#         cell_2 = ws.cell(row, col_1 + 1).value
+#         cell_3 = ws.cell(row, col_1 + 2).value
+#         cell_4 = ws.cell(row, col_1 + 3).value
+#
+#         if cell_1 or cell_2:  # Если есть данные в одной из ячеек
+#             if not cell_1:
+#                 ws.cell(row, col_1).value = '0.00'
+#             if not cell_2:
+#                 ws.cell(row, col_1 + 1).value = '0.00'
+#             if not cell_3:
+#                 ws.cell(row, col_1 + 2).value = '0.00'
+#             if not cell_4:
+#                 ws.cell(row, col_1 + 3).value = '0.00'
 
 
 # %%
@@ -342,13 +331,98 @@ def decryption_sheets(wb, df_matrica, df_avancor, file_fond):
 
     # Копируем данные расшифровки
     # Выбираем формы: расшифровки разделов
-    sheet_2_decryption_names = wb.sheetnames[19:64]
-    sheet_2_decryption_names.remove('0420502 Справка о стоимости _56')
-    sheet_2_decryption_names.remove('0420502 Справка о стоимости _57')
-    # sheet_2_decryption_names.remove('_dropDownSheet')
+    # 0420502 Справка о стоимости _14	SR_0420502_Rasshifr_Akt_P1_P1
+    # 0420502 Справка о стоимости _15	SR_0420502_Rasshifr_Akt_P1_P2
+    # 0420502 Справка о стоимости _16	SR_0420502_Rasshifr_Akt_P2_1
+    # 0420502 Справка о стоимости _17	SR_0420502_Rasshifr_Akt_P2_10
+    # 0420502 Справка о стоимости _18	SR_0420502_Rasshifr_Akt_P2_11
+    # 0420502 Справка о стоимости _19	SR_0420502_Rasshifr_Akt_P2_2
+    # 0420502 Справка о стоимости _20	SR_0420502_Rasshifr_Akt_P2_3
+    # 0420502 Справка о стоимости _21	SR_0420502_Rasshifr_Akt_P2_4
+    # 0420502 Справка о стоимости _22	SR_0420502_Rasshifr_Akt_P2_5
+    # 0420502 Справка о стоимости _23	SR_0420502_Rasshifr_Akt_P2_6
+    # 0420502 Справка о стоимости _24	SR_0420502_Rasshifr_Akt_P2_7
+    # 0420502 Справка о стоимости _25	SR_0420502_Rasshifr_Akt_P2_8
+    # 0420502 Справка о стоимости _26	SR_0420502_Rasshifr_Akt_P2_9
+    # 0420502 Справка о стоимости _27	SR_0420502_Rasshifr_Akt_P3_1
+    # 0420502 Справка о стоимости _28	SR_0420502_Rasshifr_Akt_P3_3
+    # 0420502 Справка о стоимости _29	SR_0420502_Rasshifr_Akt_P3_4
+    # 0420502 Справка о стоимости _30	SR_0420502_Rasshifr_Akt_P3_5
+    # 0420502 Справка о стоимости _31	SR_0420502_Rasshifr_Akt_P3_6
+    # 0420502 Справка о стоимости _32	SR_0420502_Rasshifr_Akt_P3_7
+    # 0420502 Справка о стоимости _33	SR_0420502_Rasshifr_Akt_P4_1
+    # 0420502 Справка о стоимости _34	SR_0420502_Rasshifr_Akt_P4_2_1
+    # 0420502 Справка о стоимости _35	SR_0420502_Rasshifr_Akt_P4_2_2
+    # 0420502 Справка о стоимости _36	SR_0420502_Rasshifr_Akt_P5_1
+    # 0420502 Справка о стоимости _37	SR_0420502_Rasshifr_Akt_P5_2
+    # 0420502 Справка о стоимости _38	SR_0420502_Rasshifr_Akt_P5_3
+    # 0420502 Справка о стоимости _39	SR_0420502_Rasshifr_Akt_P5_4
+    # 0420502 Справка о стоимости _40	SR_0420502_Rasshifr_Akt_P5_5
+    # 0420502 Справка о стоимости _41	SR_0420502_Rasshifr_Akt_P6_1_1
+    # 0420502 Справка о стоимости _42	SR_0420502_Rasshifr_Akt_P6_1_2
+    # 0420502 Справка о стоимости _43	SR_0420502_Rasshifr_Akt_P6_2_1
+    # 0420502 Справка о стоимости _44	SR_0420502_Rasshifr_Akt_P6_2_2
+    # 0420502 Справка о стоимости _45	SR_0420502_Rasshifr_Akt_P7_1
+    # 0420502 Справка о стоимости _46	SR_0420502_Rasshifr_Akt_P7_2
+    # 0420502 Справка о стоимости _47	SR_0420502_Rasshifr_Akt_P7_3
+    # 0420502 Справка о стоимости _48	SR_0420502_Rasshifr_Akt_P7_4
+    # 0420502 Справка о стоимости _49	SR_0420502_Rasshifr_Akt_P7_5
+    # 0420502 Справка о стоимости _50	SR_0420502_Rasshifr_Akt_P7_6
+    # 0420502 Справка о стоимости _51	SR_0420502_Rasshifr_Akt_P7_7
+    # 0420502 Справка о стоимости _52	SR_0420502_Rasshifr_Akt_P8_1
+    # 0420502 Справка о стоимости _53	SR_0420502_Rasshifr_Akt_P8_2
+    # 0420502 Справка о стоимости _54	SR_0420502_Rasshifr_Ob_P1
+    # 0420502 Справка о стоимости _55	SR_0420502_Rasshifr_Ob_P2
+    # 0420502 Справка о стоимости _58	SR_0420502_Rasshifr_Akt_P3_2
+
+
+    shortURL = ['SR_0420502_Rasshifr_Akt_P1_P1',
+                'SR_0420502_Rasshifr_Akt_P1_P2',
+                'SR_0420502_Rasshifr_Akt_P2_1',
+                'SR_0420502_Rasshifr_Akt_P2_10',
+                'SR_0420502_Rasshifr_Akt_P2_11',
+                'SR_0420502_Rasshifr_Akt_P2_2',
+                'SR_0420502_Rasshifr_Akt_P2_3',
+                'SR_0420502_Rasshifr_Akt_P2_4',
+                'SR_0420502_Rasshifr_Akt_P2_5',
+                'SR_0420502_Rasshifr_Akt_P2_6',
+                'SR_0420502_Rasshifr_Akt_P2_7',
+                'SR_0420502_Rasshifr_Akt_P2_8',
+                'SR_0420502_Rasshifr_Akt_P2_9',
+                'SR_0420502_Rasshifr_Akt_P3_1',
+                'SR_0420502_Rasshifr_Akt_P3_3',
+                'SR_0420502_Rasshifr_Akt_P3_4',
+                'SR_0420502_Rasshifr_Akt_P3_5',
+                'SR_0420502_Rasshifr_Akt_P3_6',
+                'SR_0420502_Rasshifr_Akt_P3_7',
+                'SR_0420502_Rasshifr_Akt_P4_1',
+                'SR_0420502_Rasshifr_Akt_P4_2_1',
+                'SR_0420502_Rasshifr_Akt_P4_2_2',
+                'SR_0420502_Rasshifr_Akt_P5_1',
+                'SR_0420502_Rasshifr_Akt_P5_2',
+                'SR_0420502_Rasshifr_Akt_P5_3',
+                'SR_0420502_Rasshifr_Akt_P5_4',
+                'SR_0420502_Rasshifr_Akt_P5_5',
+                'SR_0420502_Rasshifr_Akt_P6_1_1',
+                'SR_0420502_Rasshifr_Akt_P6_1_2',
+                'SR_0420502_Rasshifr_Akt_P6_2_1',
+                'SR_0420502_Rasshifr_Akt_P6_2_2',
+                'SR_0420502_Rasshifr_Akt_P7_1',
+                'SR_0420502_Rasshifr_Akt_P7_2',
+                'SR_0420502_Rasshifr_Akt_P7_3',
+                'SR_0420502_Rasshifr_Akt_P7_4',
+                'SR_0420502_Rasshifr_Akt_P7_5',
+                'SR_0420502_Rasshifr_Akt_P7_6',
+                'SR_0420502_Rasshifr_Akt_P7_7',
+                'SR_0420502_Rasshifr_Akt_P8_1',
+                'SR_0420502_Rasshifr_Akt_P8_2',
+                'SR_0420502_Rasshifr_Ob_P1',
+                'SR_0420502_Rasshifr_Ob_P2',
+                'SR_0420502_Rasshifr_Akt_P3_2']
+    sheetNameDecryption = listSheetsName(wb, shortURL)
 
     form_null = []  # список пустых форм
-    for form in sheet_2_decryption_names:
+    for form in sheetNameDecryption:
         print(f'{form}')
 
         ws = wb[form]
@@ -357,7 +431,7 @@ def decryption_sheets(wb, df_matrica, df_avancor, file_fond):
         title_1_name = df_matrica.loc[form, 'sheet_1_title']
 
         # Номер строки с названием раздела в файле Аванкор"""
-        title_row = razdel_name_row(df_avancor, title_1_name, index_max, ERRORS, errors_file)
+        title_row = razdel_name_row(df_avancor, title_1_name, index_max)
 
         # находим номер первой строку с данными в файле Аванкор
         data_row = start_data_row(df_avancor, index_max, title_row)
@@ -412,9 +486,39 @@ def itogi_sheets(wb_xbrl, df_avancor, df_matrica):
     """ Копируем итоговые данные"""
 
     # Выбираем вкладки
-    sheet_2_itigi = wb_xbrl.sheetnames[6:19]
+    # 0420502 Справка о стоимости чис	SR_0420502_R1
+    # 0420502 Справка о стоимости ч_2	SR_0420502_R2
+    # 0420502 Справка о стоимости ч_3	SR_0420502_R3_P1
+    # 0420502 Справка о стоимости ч_4	SR_0420502_R3_P4
+    # 0420502 Справка о стоимости ч_5	SR_0420502_R3_P2
+    # 0420502 Справка о стоимости ч_6	SR_0420502_R3_P3
+    # 0420502 Справка о стоимости ч_7	SR_0420502_R3_P5
+    # 0420502 Справка о стоимости ч_8	SR_0420502_R3_P6
+    # 0420502 Справка о стоимости ч_9	SR_0420502_R3_P7
+    # 0420502 Справка о стоимости _10	SR_0420502_R3_P8
+    # 0420502 Справка о стоимости _11	SR_0420502_R3_P9
+    # 0420502 Справка о стоимости _12	SR_0420502_R4
+    # 0420502 Справка о стоимости _13	SR_0420502_R5
 
-    for form in sheet_2_itigi:
+    shortURLs = ['SR_0420502_R1',
+                'SR_0420502_R2',
+                'SR_0420502_R3_P1',
+                'SR_0420502_R3_P4',
+                'SR_0420502_R3_P2',
+                'SR_0420502_R3_P3',
+                'SR_0420502_R3_P5',
+                'SR_0420502_R3_P6',
+                'SR_0420502_R3_P7',
+                'SR_0420502_R3_P8',
+                'SR_0420502_R3_P9',
+                'SR_0420502_R4',
+                'SR_0420502_R5']
+
+    urlSheets = codesSheets(wb)
+    sheet_2_itogi = listSheetsName(wb_xbrl, shortURLs)
+    # sheet_2_itogi = wb_xbrl.sheetnames[6:19]
+
+    for form in sheet_2_itogi:
         print(form)
         # находим, используя матрицу, раздел в файле Аванкор, соответствующий выбранной форме
         title_1_name = df_matrica.loc[form, 'sheet_1_title']
@@ -450,206 +554,231 @@ def itogi_sheets(wb_xbrl, df_avancor, df_matrica):
 # ЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖЖ
 
 # %%
+if __name__ == '__main__':
+    # Глобальные переменные
+    # файл с ощибками
+    # errors_file = 'errors.txt'
+    # ERRORS = []
 
-# файл с ощибками
-errors_file = 'errors.txt'
-ERRORS = []
+    #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    # # --------------------------------------------
+    # # загружаем данные из файла c идентификаторами
+    # file_id = r'./Шаблоны/Идентификаторы.xlsx'
+    # df_id = pd.read_excel(file_id, sheet_name=None, header=None)
+    #
+    # # --------------------------------------------
+    # # Выбор файла, созданного Аванкор
+    # file_avancor, id_fond = file_open(df_id)
+    #
+    # # --------------------------------------------
+    # # добавляем к названию файла ошибок идентификатор фонда
+    # errors_file = os.path.splitext(file_avancor)[0] + " - " \
+    #               + os.path.splitext(errors_file)[0] \
+    #               + os.path.splitext(errors_file)[1]
+    #
+    # # --------------------------------------------
+    # # загружвем данные из отчета таблицы Аванкор
+    # df_avancor = load_avancor(file_avancor)
+    # # кол-во строк и столбцов в файле Аванкор
+    # index_max = df_avancor.shape[0]
+    # collumn_max = df_avancor.shape[1]
+    # # df_avancor.head(3)
+    #
+    #
+    # # %%
+    #
+    # # загружвем данные из матрицы
+    # df_matrica = load_matrica()
+    #
+    # # --------------------------------------------
+    #
+    # # название нового файла-отчетности xbrl
+    # print(f'Имя нового файла отчетности....: ', end='')
+    # file_fond_name = asksaveasfilename(title="Имя нового файла отчетности...",
+    #                                    filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
+    # # Добавляем расширение файла
+    # file_fond_name = file_fond_name + '.xlsx'
+    # # отбрасываем путь к файлу
+    # file_fond = os.path.basename(file_fond_name)
+    # # file_fond = id_fond + '.xlsx'
+    # print(f'{file_fond}')
+    #
+    # # --------------------------------------------
+    # # название файла-шаблона
+    # file_shablon = '0420502_0420503_Квартал - 3_1.xlsx'
+    # # file_shablon = '0420502_0420503_Квартал - 3_2.xlsx'
+    # print(f'Используем шаблон: {file_shablon}')
+    # # --------------------------------------------
+    # # Создаем новый файл отчетности xbrl, создав копию шаблона
+    # shutil.copyfile(r'./Шаблоны/' + file_shablon, file_fond_name)
+    #
+    # # Загружаем данные из файла таблицы xbrl
+    # wb = openpyxl.load_workbook(filename=file_fond_name)
+    # # wb.sheetnames
+    # #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    #
+    # """
+    # id_fond
+    # df_id
+    # df_avancor
+    # df_matrica
+    # wb
+    # errors_file
+    #
+    # """
 
-# --------------------------------------------
-# загружаем данные из файла c идентификаторами
-file_id = r'./Шаблоны/Идентификаторы.xlsx'
-df_id = pd.read_excel(file_id, sheet_name=None, header=None)
+    id_fond, file_id, \
+    df_id, df_avancor, df_matrica, wb, \
+    file_fond_name, errors_file = load_data()
 
-# %%
+    # кол-во строк и столбцов в файле Аванкор
+    index_max = df_avancor.shape[0]
+    collumn_max = df_avancor.shape[1]
 
-# Выбор файла, созданного Аванкор
-file_avancor, id_fond = file_open(df_id)
-# --------------------------------------------
-# %%
+    # --------------------------------------------
+    # Записываем во все формы идентификатор фонда
+    copy_id_fond_to_tbl(wb, id_fond)
+    # --------------------------------------------
+
+    # Копируем данные из форм с расшифровками и возвращаем список пустых форм
+    form_null = decryption_sheets(wb, df_matrica, df_avancor, file_fond_name)
+
+    # Копируем итоговые данные в формы xbrl
+    itogi_sheets(wb, df_avancor, df_matrica)
+
+    # Копируем данные из пояснительных записок!!!!!
+    # sheet_2_zapiski_names = wb.sheetnames[:6]   # список названий листов - пояснительных записок
+    # Формы:
+    # 0420502 Пояснительная записка к - SR_0420502_PZ_inf_fakt_sversh_oshib
+    # 0420502 Пояснительная записка_2 - SR_0420502_PZ_sved_sobyt_okaz_susshestv_vliayn_scha
+    # 0420502 Пояснительная записка_3 - SR_0420502_PZ_inaya_inf
+    # 0420502 Пояснительная записка_4 - SR_0420502_PZ_inf_treb_i_obyaz_opz_fiuch
+    # 0420502 Пояснительная записка_5 - SR_0420502_PZ_inf_treb_i_obyaz_opz_fiuch_2
+    # 0420502 Пояснительная записка_6 - SR_0420502_PZ_inf_fakt_raznoglas_so_spec_dep
+    # список названий листов - пояснительных записок
+    shortURL = ['SR_0420502_PZ_inf_fakt_sversh_oshib',
+                'SR_0420502_PZ_sved_sobyt_okaz_susshestv_vliayn_scha',
+                'SR_0420502_PZ_inaya_inf',
+                'SR_0420502_PZ_inf_treb_i_obyaz_opz_fiuch',
+                'SR_0420502_PZ_inf_treb_i_obyaz_opz_fiuch_2',
+                'SR_0420502_PZ_inf_fakt_raznoglas_so_spec_dep']
+    sheetNameZapiski = listSheetsName(wb, shortURL)
+    zapiski_null = []  # список пустых форм
+
+    for form in sheetNameZapiski:
+        print(f'{form}')
+        ws = wb[form]
+        # находим, используя матрицу, раздел в файле-Аванкор, соответствующий выбранной форме
+        title_1_name = df_matrica.loc[form, 'sheet_1_title']
+
+        if title_1_name == title_1_name:
+            # если ячейка в столбце "sheet_1_title" пустая, то "title_1_name = nan"
+            # в этом случае: bool(title_1_name == title_1_name) == Fals
+            # (странно, но работает)
+
+            # Номер строки с названием раздела в файле Аванкор"""
+            title_row = razdel_name_row(df_avancor, title_1_name, index_max)
+
+            # находим номер первой строку с данными в файле Аванкор
+            data_row = start_data_row(df_avancor, index_max, title_row)
+
+            # находим номер последней строки с данными в таблице Аванкор"""
+            row_end = end_data_row(df_avancor, index_max, data_row)
+
+            if df_avancor.loc[row_end - 1, 3] != '2':
+                # список всех номеров строк в таблице Аванкор
+                rows_numbers = [x for x in range(data_row, row_end)]
+            else:
+                # Если в соседней ячейки(колонка "C") == "2", то это заголовок таблицы
+                # и, следовательно, форма пустая
+                # Запоминаем название вкладки
+                zapiski_null.append(form)
+                # переходим к поиску следующего раздела
+                continue
+
+            # цифра в последней колонке и номер строки с идектификаторами в таблице XBRL
+            # (количество колонок для копирования)
+            max_number = df_matrica.loc[form, 'tbl_col']
+
+            # координаты первой ячейки в таблице XBRL
+            cell_start = df_matrica.loc[form, 'cell2']
+            cell_start_row, cell_start_col = coordinate(cell_start)
+
+            # Номера колонок в таблице Аванкор, за исключением пустых
+            columns_numbers = find_columns_numbers(df_avancor, collumn_max, max_number, data_row, data_col=3)
+
+            # Копирование данных из таблицы Аванков в таблицу XBRL
+            copy_data(ws, df_avancor, rows_numbers, columns_numbers, cell_start_row, cell_start_col)
+            ERRORS.append(f'"{ws.title}" - вставьте "Идентификатор строки"')
+
+        else:
+            # "title_1_name = nan" - в файле-Аванкор нет раздела, соответствующего этой форме
+            zapiski_null.append(form)
+    # %%
+
+    """Ручные корректировки"""
+    # Меняем местами значения ячеек
+    corrector_scha_01(wb, df_id, id_fond, shortURL = 'SR_0420502_R1')
+    # Проставляем нулевые значения в формах
+    corrector_scha_03to10(wb)
+    # Вставляем данные о периоде отчетности
+    corrector_scha_03to12(wb, df_avancor, df_matrica)
+    # Записываем в формы ФИО подписантов
+    corrector_scha_56to57(wb, df_matrica, df_avancor, ERRORS, errors_file)
+    # Вставляем в ячейки с подписантами полное ФИО вместо сокращенного ФИО
+    corrector_scha_56to57_fio_full(wb, file_id, ERRORS, errors_file)
+    # id Фонда и реквизиты СпецДепа
+    corrector_scha_57(wb, df_id, id_fond)
+    # Копируем кол-во паев с заданной точностью
+    corrector_scha_13(id_fond, wb, df_avancor, df_id)
+    # Убираем лишние нули, которые появляются в результате анализа данных
+    corrector_scha_01_14_15_53(wb)
+    # Вставляем в форму подробное описание имущества
+    corrector_scha_51(wb, df_id)
+
+    # %%
+    """ Удаляем пустые формы расшифровки и пояснительных записок"""
+    for name in (form_null + zapiski_null):
+        wb.remove(wb[name])
+
+    # Уудаляем формы из Прироста, которые не заполняются
+    # составляем словарь: URL и наименования листов
+    urlSheets = codesSheets(wb)
+    wb.remove(wb[sheetNameFromUrl(urlSheets, 'SR_0420503_R3_5')])
+    wb.remove(wb[sheetNameFromUrl(urlSheets, 'SR_0420503_R4_5')])
+    wb.remove(wb[sheetNameFromUrl(urlSheets, 'SR_0420503_R4')])
+    # wb.remove(wb['0420503 Отчет о приросте об у_3'])    # SR_0420503_R3_5
+    # wb.remove(wb['0420503 Отчет о приросте об у_5'])    # SR_0420503_R4_5
+    # wb.remove(wb['0420503 Отчет о приросте об у_6'])    # SR_0420503_R4
 
 
-# %%
+    # %%
 
-# добавляем к названию файла ошибок идентификатор фонда
-errors_file = os.path.splitext(file_avancor)[0] + " - " \
-              + os.path.splitext(errors_file)[0] \
-              + os.path.splitext(errors_file)[1]
-# --------------------------------------------
+    # Сохраняем результаты в файл отчетности xbrl
+    try:
+        # os.chdir (os.path.dirname (file_fond_name))
+        wb.save(file_fond_name)
+        print('-------------------ГОТОВО!!!----------------------')
 
-# %%
+        # messagebox.showinfo("Конвертер", "Файл создан!")
 
-# загружвем данные из отчета таблицы Аванкор
-df_avancor = load_avancor(file_avancor)
+    except PermissionError:
+        ERRORS.append(f'{"=" * 100}\n'
+                      f'!!!ФАЙЛ НЕ СОЗДАН!!! \n'
+                      f'ОШИБКА ДОСТУПА К ФАЙЛУ '
+                      f'(файл открыт в другой программе - закройте файл!)\n'
+                      f'{"=" * 100} ')
 
-# %%
+    # %%
 
-# загружвем данные из матрицы
-df_matrica = load_matrica()
+    # Записываем ошибки
+    write_errors(ERRORS, errors_file)
 
-# --------------------------------------------
+    # %%
+    # Открываем файл с ошибками в Блокноте
+    # Блокнот
+    notepad = r'%windir%\system32\notepad.exe'
+    file = notepad + ' ' + errors_file
+    os.system(file)
 
-# кол-во строк и столбцов в файле Аванкор
-index_max = df_avancor.shape[0]
-collumn_max = df_avancor.shape[1]
-# df_avancor.head(3)
-# --------------------------------------------
-# # Определяем идентификатор фонда их имени файла Аванкор
-# id_fond = file_avancor.split('.')[0]
-# --------------------------------------------
-# название нового файла-отчетности xbrl
-print(f'Имя нового файла отчетности....: ', end='')
-file_fond_name = asksaveasfilename(title="Имя нового файла отчетности...",
-                                   filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
-# Добавляем расширение файла
-file_fond_name = file_fond_name + '.xlsx'
-# отбрасываем путь к файлу
-file_fond = os.path.basename(file_fond_name)
-# file_fond = id_fond + '.xlsx'
-print(f'{file_fond}')
-
-# --------------------------------------------
-# название файла-шаблона
-file_shablon = '0420502_0420503_Квартал - 3_1.xlsx'
-# file_shablon = '0420502_0420503_Квартал - 3_2.xlsx'
-print(f'Используем шаблон: {file_shablon}')
-# --------------------------------------------
-# Создаем новый файл отчетности xbrl, создав копию шаблона
-shutil.copyfile(r'./Шаблоны/' + file_shablon, file_fond_name)
-
-# Загружаем данные из файла таблицы xbrl
-wb = openpyxl.load_workbook(filename=file_fond_name)
-# wb.sheetnames
-# --------------------------------------------
-# Записываем во все формы идентификатор фонда
-copy_id_fond_to_tbl(wb, id_fond)
-# --------------------------------------------
-
-# Копируем данные из форм с расшифровками и возвращаем список пустых форм
-form_null = decryption_sheets(wb, df_matrica, df_avancor, file_fond_name)
-
-# Копируем итоговые данные в формы xbrl
-itogi_sheets(wb, df_avancor, df_matrica)
-
-# Копируем данные из пояснительных записок!!!!!
-sheet_2_zapiski_names = wb.sheetnames[:6]   # список названий листов - пояснительных записок
-# Формы:
-# 0420502 Пояснительная записка к
-# 0420502 Пояснительная записка_2
-# 0420502 Пояснительная записка_3
-# 0420502 Пояснительная записка_4
-# 0420502 Пояснительная записка_5
-# 0420502 Пояснительная записка_6
-
-# удаляем лишнюю форму (этой формы нет в Аванкоре)
-sheet_2_zapiski_names.remove('0420502 Пояснительная записка_5')
-
-form_zapiski_null = []  # список пустых форм
-
-for form in sheet_2_zapiski_names:
-    print(f'{form}')
-
-    ws = wb[form]
-
-    # находим, используя матрицу, раздел в файле Аванкор, соответствующий выбранной форме
-    title_1_name = df_matrica.loc[form, 'sheet_1_title']
-
-    # Номер строки с названием раздела в файле Аванкор"""
-    title_row = razdel_name_row(df_avancor, title_1_name, index_max, ERRORS, errors_file)
-
-    # находим номер первой строку с данными в файле Аванкор
-    data_row = start_data_row(df_avancor, index_max, title_row)
-
-    # находим номер последней строки с данными в таблице Аванкор"""
-    row_end = end_data_row(df_avancor, index_max, data_row)
-
-    if df_avancor.loc[row_end - 1, 3] != '2':
-        # список всех номеров строк в таблице Аванкор
-        rows_numbers = [x for x in range(data_row, row_end)]
-    else:
-        # Если в соседней ячейки(колонка "C") == "2", то это заголовок таблицы
-        # и следовательно форма пустая
-        # Запоминаем название вкладки
-        form_zapiski_null.append(form)
-        # переходим к поиску следующего раздела
-        continue
-
-    # цифра в последней колонке и номер строки с идектификаторами в таблице XBRL
-    # (количество колонок для копирования)
-    max_number = df_matrica.loc[form, 'tbl_col']
-
-    # координаты первой ячейки в таблице XBRL
-    cell_start = df_matrica.loc[form, 'cell2']
-    cell_start_row, cell_start_col = coordinate(cell_start)
-
-    # Номера колонок в таблице Аванкор, за исключением пустых
-    columns_numbers = find_columns_numbers(df_avancor, collumn_max, max_number, data_row, data_col=3)
-
-    # Копирование данных из таблицы Аванков в таблицу XBRL
-    copy_data(ws, df_avancor, rows_numbers, columns_numbers, cell_start_row, cell_start_col)
-    ERRORS.append(f'"{ws.title}" - вставьте "Идентификатор строки"')
-
-# %%
-
-"""Ручные корректировки"""
-# Меняем местами значения ячеек
-corrector_scha_ch_1(wb, df_id, id_fond)
-# Проставляем нулевые значения в формах
-corrector_scha_ch_3to10(wb)
-# Вставляем данные о периоде отчетности
-corrector_scha_ch_2to12(wb, df_avancor, df_matrica)
-# Записываем в формы ФИО подписантов
-corrector_scha_56to57(wb, df_matrica, df_avancor, ERRORS, errors_file)
-# Вставляем в ячейки с подписантами полное ФИО вместо сокращенного ФИО
-corrector_scha_56to57_fio_full(wb, file_id, ERRORS, errors_file)
-# id Фонда и реквизиты СпецДепа
-corrector_scha_57(wb, df_id, id_fond)
-# Копируем кол-во паев с заданной точностью
-corrector_scha_13(id_fond, wb, df_avancor, df_id)
-# Убираем лишние нули, которые появляются в результате анализа данных
-corrector_scha_00(wb)
-# Вставляем в форму подробное описание имущества
-corrector_scha_51(wb, df_id)
-
-# %%
-""" Удаляем пустые формы расшифровки и пояснительных записок"""
-for name in (form_null + form_zapiski_null):
-    wb.remove(wb[name])
-
-# данные в этой форме в Аванкор отсутствуют - удаляем форму
-wb.remove(wb['0420502 Пояснительная записка_5'])
-
-# удаляем формы из Прироста, которые не заполняются
-wb.remove(wb['0420503 Отчет о приросте об у_3'])
-wb.remove(wb['0420503 Отчет о приросте об у_5'])
-wb.remove(wb['0420503 Отчет о приросте об у_6'])
-
-# %%
-
-# Сохраняем результаты в файл отчетности xbrl
-try:
-    # os.chdir (os.path.dirname (file_fond_name))
-    wb.save(file_fond_name)
-    print('-------------------ГОТОВО!!!----------------------')
-
-    # messagebox.showinfo("Конвертер", "Файл создан!")
-
-except PermissionError:
-    ERRORS.append(f'{"=" * 100}\n'
-                  f'!!!ФАЙЛ НЕ СОЗДАН!!! \n'
-                  f'ОШИБКА ДОСТУПА К ФАЙЛУ '
-                  f'(файл открыт в другой программе - закройте файл!)\n'
-                  f'{"=" * 100} ')
-
-# %%
-
-# Записываем ошибки
-write_errors(ERRORS, errors_file)
-
-# %%
-# Открываем файл с ошибками в Блокноте
-# Блокнот
-notepad = r'%windir%\system32\notepad.exe'
-file = notepad + ' ' + errors_file
-os.system(file)
-
-# %%
+    # %%

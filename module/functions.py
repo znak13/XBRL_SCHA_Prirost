@@ -9,6 +9,8 @@ def write_errors(ERRORS, errors_file):
 
     if not ERRORS:
         ERRORS.append('Ошибок не выявлено!')
+    ERRORS.append('Проверьте корректность заполнения пояснительных записок!\n'
+                  '(в частности, столбец: "Наименование показателя")')
     with open(errors_file, "w") as file:
         for k in ERRORS:
             file.write(str(k) + '\n\n')
@@ -75,7 +77,7 @@ def id_nombers(col_begin):
 
 
 # %%
-def razdel_name_row(df_avancor, title_1_name, index_max, ERRORS, errors_file, title_col=2):
+def razdel_name_row(df_avancor, title_1_name, index_max, title_col=2):
     """Поиск Номера строки с названием раздела в файле Аванкор"""
 
     for row in range(1, index_max):
@@ -85,9 +87,8 @@ def razdel_name_row(df_avancor, title_1_name, index_max, ERRORS, errors_file, ti
             return title_row
 
     print('------>ERROR!', razdel_name_row.__name__)
-
     ERRORS.append(f'Раздел отчетности: "{title_1_name}" в таблице-Аванкор не найден')
-    write_errors(ERRORS, errors_file)
+    # write_errors(ERRORS, errors_file)
     sys.exit("Ошибка!")
 
 
@@ -140,10 +141,11 @@ def find_columns_numbers(df_avancor, collumn_max, max_number, data_row, data_col
         data_col += 1
     return column
 
+
 # %%
 
-def codesSheets(wb):
-    """ Список кодов и наименования листов """
+def codesSheets(wb) -> dict:
+    """ Словарь: URL и наименования листов """
     codes_sheets = {}
     for sheet in wb.sheetnames:
         ws_xbrl = wb[sheet]
@@ -159,45 +161,60 @@ def codesSheets(wb):
 
     return codes_sheets
 
-def sheetsCodes(wb):
-    """ Список наименования листов и их URL  """
-    sheets_codes = {}
-    for sheet in wb.sheetnames:
-        ws_xbrl = wb[sheet]
-        ws_xbrl_cell = ws_xbrl.cell(3, 1)
-        sheets_codes [sheet] = ws_xbrl_cell.value
-        # print(sheet, ws_xbrl_cell.value)
 
-    # исключаем из списка вкладку '_dropDownSheet'
-    for sheet in sheets_codes:
-        if sheet == '_dropDownSheet':
-            sheets_codes.pop(sheet)
-            break
+def sheetNameFromUrl(codesSheets: dict, shortURL: str) ->str:
+    """ Поиск имени вкладки по части кода формы"""
+    global ERRORS
+    global errors_file
 
-    return sheets_codes
+    for url in codesSheets:
+        if url.endswith(shortURL):
+            return codesSheets[url]
+
+    print(f'------>ERROR! - функция: "{sheetNameFromUrl.__name__}"')
+    ERRORS.append(f'В отчетном файле не найдено имя вкладки с кодом "{shortURL}"')
+    write_errors(ERRORS, errors_file)
+    sys.exit("Ошибка!")
+
+
+def find_codesSheets(wb, urls: list ):
+    """Выборка "код(короткий)-форма" из всего списка, по списку url(короткие)"""
+
+    new_codesSheets = {}
+    for code, name in codesSheets(wb).items():
+        for url in urls:
+            if code.endswith(url):
+                new_codesSheets[url] = name
+
+    return new_codesSheets
+
+
 # %%
 
+def listSheetsName(wb, shortURLs: list) -> list:
+    """ Составляем список наименований вкладок из списка коротких 'url'"""
+
+    SheetsNames = []
+    urlSheets = codesSheets(wb)
+    for url in shortURLs:
+        SheetsNames.append(sheetNameFromUrl(urlSheets, url))
+    return SheetsNames
+
+
+# %%
 
 if __name__ == "__main__":
-    import openpyxl
 
-    file_name = r"d:\Clouds\YandexDisk\Git\XBRL_SCHA_Prirost\0420502_0420503.xlsx"
-    # Загружаем данные из файла таблицы xbrl
-    wb = openpyxl.load_workbook(filename=file_name)
+    # Загружвем данные
+    import module.dataLoad as ld
+    id_fond, file_id, df_identifier, df_avancor, df_matrica, wb, \
+    file_fond_name, errors_file = ld.load_data_2()
 
-    codes_sheets = codesSheets(wb)
-    sheets_codes = sheetsCodes(wb)
+    shortURLs = ['SR_0420502_PZ_inf_fakt_sversh_oshib',
+            'SR_0420502_PZ_sved_sobyt_okaz_susshestv_vliayn_scha',
+            'SR_0420502_PZ_inaya_inf',
+            'SR_0420502_PZ_inf_treb_i_obyaz_opz_fiuch',
+            'SR_0420502_PZ_inf_treb_i_obyaz_opz_fiuch_2',
+            'SR_0420502_PZ_inf_fakt_raznoglas_so_spec_dep']
 
-    code_PZ_5 = 'SR_0420502_PZ_inf_treb_i_obyaz_opz_fiuch_2'
-
-    sheets_PZ=[]
-    for code in codes_sheets:
-        if ("_PZ_" in code) and (code_PZ_5 not in code):
-            sheets_PZ.append(codes_sheets[code])
-
-    sheets_PZ2=[]
-    for sheet in sheets_codes:
-        code = sheets_codes[sheet]
-        if ("_PZ_" in code) and (code_PZ_5 not in code):
-            sheets_PZ2.append(sheet)
-
+    qq = find_codesSheets(wb, shortURLs )
