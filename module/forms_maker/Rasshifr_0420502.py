@@ -114,6 +114,9 @@ def scha_rashifr_All(wb, df_matrica, df_avancor, df_identifier, id_fond, ERRORS)
         print(f'{formName}')
         ws = wb[formName]
 
+        # Записываем в форму идентификатор фонда
+        dcop.copy_id_fond_to_tbl(ws, id_fond)
+
         # находим, используя матрицу, раздел в файле Аванкор, соответствующий выбранной форме
         title_1_name = df_matrica.loc[url, 'sheet_1_title']
 
@@ -168,6 +171,7 @@ def scha_rashifr(wb, df_matrica, df_avancor, df_identifier, id_fond, ERRORS):
     # Переносим данные во все формы
     # и возвращаем список пустых форм
     sheetsNameNull = scha_rashifr_All(wb, df_matrica, df_avancor, df_identifier, id_fond, ERRORS)
+
 
     # ================================================================
     # Далее корректируем формы в зависимости от их особенностей:

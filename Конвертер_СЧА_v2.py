@@ -5,6 +5,9 @@ import module.forms_maker.Podpisant_0420502 as pp
 import module.forms_maker.Zapiski_0420502 as zap
 import module.forms_maker.Prirost_0420503 as prst
 
+import os
+from module.functions import write_errors
+
 from tkinter import Tk
 root = Tk()
 root.withdraw()
@@ -36,3 +39,9 @@ prst.prirost(wb)
 # Сохраняем результат
 wb.save(file_fond_name)
 
+# Сохраняем ошибки
+write_errors(ERRORS, errors_file)
+# Открываем файл с ошибками в Блокноте
+notepad = r'%windir%\system32\notepad.exe'
+file = notepad + ' ' + errors_file
+os.system(file)
