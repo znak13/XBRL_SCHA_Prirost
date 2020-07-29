@@ -1,16 +1,20 @@
 import sys
-from openpyxl.utils.cell import coordinate_from_string
-from openpyxl.utils import column_index_from_string
+import os
+from openpyxl.utils.cell import coordinate_from_string  # ‘B12’ -> (‘B’, 12)
+from openpyxl.utils import column_index_from_string     # 'B' -> 2
+from openpyxl.utils.cell import get_column_letter       # 3 -> 'C'
+from openpyxl.utils.cell import coordinate_to_tuple     # 'D2' -> (2,4)
+from openpyxl.styles import Alignment
 
-
+global log
 # %%
 def write_errors(ERRORS, errors_file):
     """ Записываем ошибки в файл"""
 
     if not ERRORS:
         ERRORS.append('Ошибок не выявлено!')
-    ERRORS.append('Проверьте корректность заполнения пояснительных записок!\n'
-                  '(в частности, столбец: "Наименование показателя")')
+    # ERRORS.append('Проверьте корректность заполнения пояснительных записок!\n'
+    #               '(в частности, столбец: "Наименование показателя")')
     with open(errors_file, "w") as file:
         for k in ERRORS:
             file.write(str(k) + '\n\n')
@@ -19,9 +23,8 @@ def write_errors(ERRORS, errors_file):
 # %%
 def coordinate(cell):
     """Конвртер координат: 'A10' преобразуем в '10, 1' """
-    data = coordinate_from_string(cell)
-    row = data[1]
-    col = column_index_from_string(data[0])
+    col, row = coordinate_from_string(cell)
+    col = column_index_from_string(col)
     return row, col
 
 
@@ -86,9 +89,7 @@ def razdel_name_row(df_avancor, title_1_name, index_max, title_col=2):
             title_row = row
             return title_row
 
-    print('------>ERROR!', razdel_name_row.__name__)
-    ERRORS.append(f'Раздел отчетности: "{title_1_name}" в таблице-Аванкор не найден')
-    # write_errors(ERRORS, errors_file)
+    log.error(f'Раздел отчетности: "{title_1_name}" в таблице-Аванкор не найден')
     sys.exit("Ошибка!")
 
 
@@ -164,16 +165,12 @@ def codesSheets(wb) -> dict:
 
 def sheetNameFromUrl(codesSheets: dict, shortURL: str) ->str:
     """ Поиск имени вкладки по части кода формы"""
-    global ERRORS
-    global errors_file
 
     for url in codesSheets:
         if url.endswith(shortURL):
             return codesSheets[url]
 
-    print(f'------>ERROR! - функция: "{sheetNameFromUrl.__name__}"')
-    ERRORS.append(f'В отчетном файле не найдено имя вкладки с кодом "{shortURL}"')
-    write_errors(ERRORS, errors_file)
+    log.error(f'В отчетном файле не найдено имя вкладки с кодом "{shortURL}"')
     sys.exit("Ошибка!")
 
 
@@ -203,18 +200,21 @@ def listSheetsName(wb, shortURLs: list) -> list:
 
 # %%
 
+def cellFormat(ws, cell, cols: int=None):
+    """Форматируем ячейки (выравниваем по правому краю)"""
+    # 'cols' - кол-во колонок, данные в которых будут отформатированы
+    # (если 'cols' не задан, то форматируются данные во всех колонках, начиная с 'cell')
+
+    col1, row1 = coordinate_from_string(cell)
+    col1 = column_index_from_string(col1)
+
+    colEnd = col1 + cols if cols else ws.max_column + 1
+    rowEnd = ws.max_row + 1
+    for row in range(row1, rowEnd):
+        for col in range(col1, colEnd):
+            ws.cell(row, col).alignment = Alignment(horizontal='right')
+
+
+# %%
 if __name__ == "__main__":
-
-    # Загружвем данные
-    import module.dataLoad as ld
-    id_fond, file_id, df_identifier, df_avancor, df_matrica, wb, \
-    file_fond_name, errors_file = ld.load_data_2()
-
-    shortURLs = ['SR_0420502_PZ_inf_fakt_sversh_oshib',
-            'SR_0420502_PZ_sved_sobyt_okaz_susshestv_vliayn_scha',
-            'SR_0420502_PZ_inaya_inf',
-            'SR_0420502_PZ_inf_treb_i_obyaz_opz_fiuch',
-            'SR_0420502_PZ_inf_treb_i_obyaz_opz_fiuch_2',
-            'SR_0420502_PZ_inf_fakt_raznoglas_so_spec_dep']
-
-    qq = find_codesSheets(wb, shortURLs )
+    pass

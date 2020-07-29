@@ -29,8 +29,7 @@ def analiz_data_data(cell):
 
     # если данные в ячейке, в формате "дата": 2222-07-31 00:00:00
     if type(cell) == datetime:
-        cell = cell.strftime("%Y-%m-%d")
-        return cell
+        return cell.strftime("%Y-%m-%d")
 
     return False
 
@@ -40,8 +39,7 @@ def analiz_data_valuta(cell):
     """ Конвертер валюты и страны """
 
     if cell == 'RUB':
-        cell = '643-RUB'
-        return cell
+        return '643-RUB'
     return False
 
 
@@ -50,8 +48,7 @@ def analiz_data_strana(cell):
     """ Конвертер валюты и страны """
 
     if cell == 'RUS':
-        cell = '643'
-        return cell
+        return '643'
     return False
 
 

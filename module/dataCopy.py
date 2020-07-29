@@ -1,16 +1,17 @@
-from module.dataCheck   import check_errors
+from module.dataCheck import check_errors
 from module.analiz_data import analiz_data_all
-from module.functions   import coordinate, find_columns_numbers, \
+from module.functions import coordinate, find_columns_numbers, \
     razdel_name_row, start_data_row, end_data_row, listSheetsName
 
+global log
 
-def copy_data(ws, df_avancor, rows_numbers, columns_numbers, row_begin, col_begin, ERRORS):
+def copy_data(ws, df_avancor, rows_numbers, columns_numbers, row_begin, col_begin):
     """ Копирование данных из таблицы Аванкор в таблицу XBRL """
 
     for r, row in enumerate(rows_numbers):
         for c, col in enumerate(columns_numbers):
             cell_avancor = df_avancor.loc[row, col]
-            check_errors(ws, cell_avancor, row_begin, r, c, col_begin, ERRORS )
+            check_errors(ws, cell_avancor, row_begin, r, c, col_begin)
             if cell_avancor != '-' and \
                     cell_avancor != "x" and \
                     cell_avancor != 0 and \
@@ -18,7 +19,8 @@ def copy_data(ws, df_avancor, rows_numbers, columns_numbers, row_begin, col_begi
                 ws.cell(row_begin + r, col_begin + c).value = \
                     analiz_data_all(df_avancor.loc[row, col])
 
-#%%
+
+# %%
 def copy_id_fond_to_tbl(ws, id_fond):
     """Записываем в форму идентификатор фонда"""
 
@@ -35,8 +37,10 @@ def copy_id_fond_to_tbl(ws, id_fond):
     info = 'Z= Идентификатор АИФ ПИФ-'
     if info in cell_id.value:
         cell_id.value = info + id_fond
-#%%
-def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id, ERRORS):
+
+
+# %%
+def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id):
     """ Определение идентификатора
         :ws: форма в отчетности xbrl
         :sheet_name_id: название листа с идентификатором
@@ -89,11 +93,10 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id, ERRORS):
                 try:
                     id_is = df_priznak[0].values[0]
                 except Exception:
-                    ERRORS.append(f'ERROR! - в файле "Идентификаторы" не указан расчетный счет фонда')
+                    log.error(f'в файле "Идентификаторы" не указан расчетный счет фонда')
             else:
                 id_is = 'ошибка'
-                print('------>ERROR!', round_id.__name__)
-                ERRORS.append(f'ERROR! - в форме "{ws.title}" не определен "{df_id_ws.loc[0, 0]}", строка:{row_i} ')
+                log.error(f'"{ws.title}" --> не определен "{df_id_ws.loc[0, 0]}", строка:{row_i} ')
 
             break
         else:
@@ -103,15 +106,15 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id, ERRORS):
         return id_is
     else:
         id_is = 'ошибка'
-        print('.......ERROR!.......')
-        print('Идентификатор не найден')
-        ERRORS.append(f'Идентификатор не найден: '
-                      f'"{ws.title}", "{df_id_ws.loc[0, 0]}", строка:{row_i}')
+        log.error(f'Идентификатор не найден: '
+                  f'"{ws.title}", "{df_id_ws.loc[0, 0]}", строка:{row_i}')
 
         return id_is
-#%%
 
-def insert_id(ws, id_row, id_cols, df_id, rows_numbers, row_begin, col_begin, id_fond, ERRORS):
+
+# %%
+
+def insert_id(ws, id_row, id_cols, df_id, rows_numbers, row_begin, col_begin, id_fond):
     """ Находим и вставляем идентификаторы в ячейки"""
 
     # словарь ВСЕХ названий идетификаторов (полные) и имен вкладок (сокращенные)
@@ -128,20 +131,21 @@ def insert_id(ws, id_row, id_cols, df_id, rows_numbers, row_begin, col_begin, id
 
         for row in range(len(rows_numbers) - 1):
             row_i = row_begin + row
-            id_is = id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id, ERRORS)
+            id_is = id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id)
 
             # записываем название идентификатора в таблицу xbrl
             ws.cell(row_i, id_cols[i]).value = id_is
-#%%
 
-def copy_zapiski(wb, df_matrica, df_avancor, urlSheets, ERRORS):
 
+# %%
+
+def copy_zapiski(wb, df_matrica, df_avancor, urlSheets, id_fond):
     # кол-во строк и столбцов в файле Аванкор
     index_max = df_avancor.shape[0]
     collumn_max = df_avancor.shape[1]
 
     zapiski_null = []  # список пустых форм
-    for url,form in urlSheets.items():
+    for url, form in urlSheets.items():
 
         print(f'{form}')
         ws = wb[form]
@@ -149,9 +153,9 @@ def copy_zapiski(wb, df_matrica, df_avancor, urlSheets, ERRORS):
         title_1_name = df_matrica.loc[url, 'sheet_1_title']
 
         if title_1_name == title_1_name:
-            # если ячейка в столбце "sheet_1_title" пустая, то "title_1_name = nan"
+            # если ячейка в столбце "sheet_1_title" пустая, то "title_1_name == nan"
             # в этом случае: bool(title_1_name == title_1_name) == Fals
-            # (странно, но работает)
+            # (...странно, но работает)
 
             # Номер строки с названием раздела в файле Аванкор"""
             title_row = razdel_name_row(df_avancor, title_1_name, index_max)
@@ -166,7 +170,7 @@ def copy_zapiski(wb, df_matrica, df_avancor, urlSheets, ERRORS):
                 # список всех номеров строк в таблице Аванкор
                 rows_numbers = [x for x in range(data_row, row_end)]
             else:
-                # Если в соседней ячейки(колонка "C") == "2", то это заголовок таблицы
+                # Если в соседней ячейке(колонка "C") == "2", то это заголовок таблицы
                 # и, следовательно, форма пустая
                 # Запоминаем название вкладки
                 zapiski_null.append(form)
@@ -184,9 +188,13 @@ def copy_zapiski(wb, df_matrica, df_avancor, urlSheets, ERRORS):
             # Номера колонок в таблице Аванкор, за исключением пустых
             columns_numbers = find_columns_numbers(df_avancor, collumn_max, max_number, data_row, data_col=3)
 
+            # Записываем в форму идентификатор фонда
+            copy_id_fond_to_tbl(ws, id_fond)
+
             # Копирование данных из таблицы Аванков в таблицу XBRL
-            copy_data(ws, df_avancor, rows_numbers, columns_numbers, cell_start_row, cell_start_col, ERRORS)
-            ERRORS.append(f'"{ws.title}" - вставьте "Идентификатор строки"')
+            copy_data(ws, df_avancor, rows_numbers, columns_numbers, cell_start_row, cell_start_col)
+
+            log.error(f'"{ws.title}" --> вставьте "Идентификатор строки"')
 
         else:
             # "title_1_name = nan" - в файле-Аванкор нет раздела, соответствующего этой форме
