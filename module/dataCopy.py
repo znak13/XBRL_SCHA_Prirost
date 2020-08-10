@@ -3,6 +3,10 @@ from module.analiz_data import analiz_data_all
 from module.functions import coordinate, find_columns_numbers, \
     razdel_name_row, start_data_row, end_data_row, listSheetsName
 
+import openpyxl
+from openpyxl.styles import Font
+
+
 global log
 
 def copy_data(ws, df_avancor, rows_numbers, columns_numbers, row_begin, col_begin):
@@ -55,11 +59,29 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id):
         for col in range(col_begin, ws.max_column + 1):
             id_priznak = ws.cell(row_i, col).value if id_fond is None else id_fond
 
+            # Убираем пробелы в идентификаторах
+            # (так значния будут сравниваться корректнее)
+            if id_priznak:
+                id_priznak = id_priznak.replace(' ', '')
+
+            # Убираем пробелы в столбце файла с идентификаторами (в каждом элементе)
+
+            # и запоминаем новые значения (уже без пробелов)
+            # df_id_ws[n] = df_id_ws[n].apply(lambda x: x.replace(' ', '')) # (1)вариант без новой переменной
+
+            # (заводим новую переменную, т.к. если оставить (1)вариант,
+            # то появляется предупреждение о возможной некорректрой работе)
+            id_names = df_id_ws[n]
+            id_names = id_names.apply(lambda x: x.replace(' ', ''))
+
             # Список признаков
-            df_priznak = df_id_ws[df_id_ws[n] == id_priznak]
+            # df_priznak = df_id_ws[df_id_ws[n] == id_priznak]              # (1)вариант без новой переменной
+            df_priznak = df_id_ws[id_names == id_priznak]
 
             # Если находим признак в строке, то прерываем перебор колонок
-            if id_priznak in df_priznak[n].to_list():
+            # if id_priznak in df_priznak[n].to_list():                     # (1)вариант без новой переменной
+            # (перед сравнением удаляем лишние пробелы)
+            if id_priznak in [x.replace(' ', '') for x in df_priznak[n].to_list()]:
                 break
 
         return df_priznak, id_priznak
@@ -136,6 +158,12 @@ def insert_id(ws, id_row, id_cols, df_id, rows_numbers, row_begin, col_begin, id
             # записываем название идентификатора в таблицу xbrl
             ws.cell(row_i, id_cols[i]).value = id_is
 
+            # отмечаем красным цветом ошибку
+            if id_is == "ошибка":
+                # красный цвет
+                color_font = openpyxl.styles.colors.Color(rgb='FFFF0000')
+                ws.cell(row_i, id_cols[i]).font = Font(color=color_font)
+
 
 # %%
 
@@ -201,3 +229,9 @@ def copy_zapiski(wb, df_matrica, df_avancor, urlSheets, id_fond):
             zapiski_null.append(form)
 
     return zapiski_null
+
+if __name__ == "__main__":
+    # красный цвет
+    # color_font = openpyxl.styles.colors.Color(rgb='FFFF0000')
+    # ws_xbrl[cell.coordinate].font = Font(color=color_font)
+    pass

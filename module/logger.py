@@ -2,8 +2,8 @@ import logging
 
 
 def create_log(path="",
-               file_log='errors.log', mode='w',
-               file_debug='debug.log', filemode='w'):
+               file_log='errors.log', mode='a',
+               file_debug='debug.log', filemode='a'):
     """ Включаем логировние"""
     # path - путь к лог-файлам
 
@@ -21,9 +21,9 @@ def create_log(path="",
     # Create a custom logger
     log = logging.getLogger('aya')
 
-    # Create handlers
-    c_handler = logging.StreamHandler()
-    f_handler = logging.FileHandler(path + file_log, mode=mode)
+    # Create handlers (обработчики)
+    c_handler = logging.StreamHandler() # в терминал
+    f_handler = logging.FileHandler(path + file_log, mode=mode) # в файл
     c_handler.setLevel(logging.WARNING)
     f_handler.setLevel(logging.ERROR)
 

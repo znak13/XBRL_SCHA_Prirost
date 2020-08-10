@@ -3,7 +3,7 @@ import os
 import sys
 import openpyxl
 import shutil
-# from Конвертер_СЧА import file_open
+from module.globals import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 
 
@@ -14,7 +14,12 @@ def load_file(folder=None,
               header=None):
     """ Закружаем данные из файла 'excel' """
 
-    file = folder + '/' + fileName
+    # проверяем усть ли опостраф '/' в конце пути
+    if folder.endswith('/'):
+        file = folder + fileName
+    else:  # если нет '/', то добавляем
+        file = folder + '/' + fileName
+
     df = pd.read_excel(file, sheet_name=sheet_name, index_col=index_col, header=header)
 
     return df
@@ -62,7 +67,7 @@ def openAvancore(df_id):
     print(f'Выбираем файл, сформированный Аванкор....'
           f'(файл должен начинаться с идентификатора фонда)')
     # show an "Open" dialog box and return the path to the selected file
-    file_open = askopenfilename(initialdir="./#Отчетность",
+    file_open = askopenfilename(initialdir=dir_reports,
                                 title="Выбираем файл, сформированный Аванкор....",
                                 filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
     # Имя файла без пути к нему
@@ -74,76 +79,18 @@ def openAvancore(df_id):
     return file_open, id_fond
 
 
-# ========================================================================
-#%%
-# def load_data():
-#
-#     # Путь к папке с 'Шаблоны' из папки 'module'
-#     folderID = pathToFile(up=1, folder='Шаблоны')
-#     # ---------------------------------------------------------
-#     # Загрузка файла-Матрицы
-#     df_matrica = load_file(folder=folderID,
-#                            fileName='Матрица.xlsx',
-#                            sheet_name='0420502',
-#                            index_col=1,
-#                            header=0)
-#     # ---------------------------------------------------------
-#     # Загрузка файла с Идентификаторами
-#     df_identifier = load_file(folder=folderID,
-#                               fileName='Идентификаторы.xlsx',
-#                               sheet_name=None,
-#                               index_col=None,
-#                               header=None)
-#     file_id = folderID + '/' + 'Идентификаторы.xlsx'
-#     # ---------------------------------------------------------
-#     # Выбор файла, созданного в Аванкор
-#     file_avancor, id_fond = openAvancore(df_identifier)
-#     # ---------------------------------------------------------
-#     # Загрузка файла-Аванкор
-#     path_to_file_avancor = os.path.dirname(file_avancor)
-#     # отбрасываем путь к файлу
-#     fileNameAvancor = os.path.basename(file_avancor)
-#     df_avancor = load_file(folder=path_to_file_avancor,
-#                            fileName=fileNameAvancor,
-#                            sheet_name='TDSheet',
-#                            index_col=None,
-#                            header=None)
-#     # устанавливаем начальный индекс не c 0, а c 1
-#     df_avancor.index += 1
-#     df_avancor.columns += 1
-#     # ---------------------------------------------------------
-#     # добавляем к названию файла ошибок идентификатор фонда
-#     errors_file = os.path.splitext(file_avancor)[0] + " - " + 'errors.txt'
-#     # ---------------------------------------------------------
-#     # Выбираем имя создаваемого файла-отчетности
-#     file_fond_name = newFileName()
-#     # ---------------------------------------------------------
-#     # Используем файл-Шаблон
-#     file_shablon = '0420502_0420503_Квартал - 3_1.xlsx'
-#     # file_shablon = '0420502_0420503_Квартал - 3_2.xlsx'
-#     print(f'Используем шаблон: {file_shablon}')
-#     # ---------------------------------------------------------
-#     # Создаем новый файл отчетности 'file_fond_name',
-#     # создав копию шаблона 'file_shablon'
-#     shutil.copyfile(folderID + '/' + file_shablon, file_fond_name)
-#     # ---------------------------------------------------------
-#     # Загружаем данные из файла таблицы xbrl
-#     wb = openpyxl.load_workbook(filename=file_fond_name)
-#     # ---------------------------------------------------------
-#     return id_fond, file_id, df_identifier, df_avancor, df_matrica, wb, file_fond_name, errors_file
-
-#%%
+# %%
 def load_data():
     """ Выбор файлов и загрузка данных"""
 
     # ---------------------------------------------------------
     # Загрузка файла с Идентификаторами
-    df_identifier = load_file(folder=folderShablon,
+    df_identifier = load_file(folder=dir_shablon,
                               fileName=fileID,
                               sheet_name=None,
                               index_col=None,
                               header=None)
-    file_id = folderShablon + '/' + fileID
+    file_id = dir_shablon + fileID
     # ---------------------------------------------------------
     # Выбор файла, созданного в Аванкор
     file_avancor, id_fond = openAvancore(df_identifier)
@@ -158,7 +105,7 @@ def load_data():
                            sheet_name=fileAvancore_sheetNname,
                            index_col=None,
                            header=None)
-    # устанавливаем начальный индекс не c 0, а c 1
+    # устанавливаем начальный индекс не c 0, а c 1 (так удобнее)
     df_avancor.index += 1
     df_avancor.columns += 1
     # ---------------------------------------------------------
@@ -170,7 +117,7 @@ def load_data():
     # ---------------------------------------------------------
     # Создаем новый файл отчетности 'file_fond_name',
     # создав копию шаблона 'file_shablon'
-    shutil.copyfile(folderShablon + '/' + fileShablon, file_fond_name)
+    shutil.copyfile(dir_shablon + fileShablon, file_fond_name)
     # ---------------------------------------------------------
     # Загружаем данные из файла таблицы xbrl
     wb = openpyxl.load_workbook(filename=file_fond_name)
@@ -178,7 +125,7 @@ def load_data():
     return id_fond, df_identifier, df_avancor, wb, file_fond_name, path_to_rerort
 
 
-#%%
+# %%
 def idFromFileName(fileName):
     """ Поиск в названии файла идентификатор фонда"""
     # Имя файла без расширения
@@ -189,44 +136,23 @@ def idFromFileName(fileName):
     id_fond = '_'.join(id_fond[:2])
 
     # Список всех идентификаторой фондов
-    df_identifier = load_file(folder=folderShablon, fileName=fileID)
+    df_identifier = load_file(folder=dir_shablon, fileName=fileID)
     all_id_fond = df_identifier['ПИФ'][0][1:].to_list()
 
     # Если в названии файла нет идентификатора, то прерываем программу
     if not (id_fond in all_id_fond):
         print(f'.......ERROR!.......')
-        print(f'{"=" * 100}\n'              
+        print(f'{"=" * 100}\n'
               f'Файл не сформирован!\n'
               f'В названии файла: "{fileName}" неверно указан идентификатор фонда!\n'
               f'(проверьте название файла)\n'
               f'{"=" * 100}')
         sys.exit()
 
-
     return id_fond
 
 
-
 # ============================================================================
-# Переменные
-
-# папка с Шаблонами и Идентификаторами
-folderWithShablon = 'Шаблоны'
-# Путь к папке с 'Шаблоны' из папки 'module'
-folderShablon = pathToFile(up=1, folder=folderWithShablon)
-# название файла с Шаблоном отчетности
-fileShablon = '0420502_0420503_Квартал - 3_1.xlsx'
-# fileShablon = '0420502_0420503_Квартал - 3_2.xlsx'
-print(f'Используем шаблон: {fileShablon}')
-
-
-# название файла с Идентификаторами
-fileID = 'Идентификаторы.xlsx'
-# вкладка в файле-отчетности, созданном в Аванкоре
-fileAvancore_sheetNname = 'TDSheet'
-# имя файла с ошибками
-# errorsFile = 'errors.txt'
-# ---------------------------------------------------------
 
 if __name__ == '__main__':
     pass

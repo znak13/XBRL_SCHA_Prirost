@@ -48,7 +48,7 @@ def wx_fun():
             expMenu.Append(wx.ID_ANY, "Экспорт видео")
             expMenu.Append(wx.ID_ANY, "Экспорт данных")
             fileMenu.AppendSubMenu(expMenu, "Экспорт")
-            # Добавляем сепаратор
+            # Добавляем сепаратор (разделительная линия)
             fileMenu.AppendSeparator()
 
             # item = wx.MenuItem(fileMenu, wx.ID_EXIT, "Выход\tCtrl+Q", "Выход изпрограммы")

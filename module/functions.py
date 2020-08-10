@@ -8,19 +8,7 @@ from openpyxl.styles import Alignment
 
 global log
 # %%
-def write_errors(ERRORS, errors_file):
-    """ Записываем ошибки в файл"""
 
-    if not ERRORS:
-        ERRORS.append('Ошибок не выявлено!')
-    # ERRORS.append('Проверьте корректность заполнения пояснительных записок!\n'
-    #               '(в частности, столбец: "Наименование показателя")')
-    with open(errors_file, "w") as file:
-        for k in ERRORS:
-            file.write(str(k) + '\n\n')
-
-
-# %%
 def coordinate(cell):
     """Конвртер координат: 'A10' преобразуем в '10, 1' """
     col, row = coordinate_from_string(cell)
@@ -41,7 +29,7 @@ def end_col_number(ws, row_id_fond=5):
             max_number = int(cell.value)
             break
     if not max_number or not row:
-        print(f'Ошибка в функции: "end_col_number()"')
+        log.error(f'Ошибка в функции: "end_col_number()"')
 
     return max_number, row_id_fond + row + 1  # строка с идентификаторами ниже на одну строчку
 
@@ -59,7 +47,7 @@ def begin_cell(ws, max_number, row_id_fond=5):
             row_begin = row_id_fond + row
             break
     if not row_begin:
-        print(f'.......... Ошибка в функции: "begin_cell()"')
+        log.error(f'.......... Ошибка в функции: "begin_cell()"')
 
     return col_begin, row_begin
 
@@ -116,7 +104,7 @@ def end_data_row(df_avancor, index_max, data_row, title_col=2):
 
     data = df_avancor.loc[data_row, title_col]
     if data == 'Итого' or str(data) == 'nan' or str(data).startswith('Оценочная стоимость'):
-        # print(' - раздел пуст')
+        # (' - раздел пуст')
         row_end = data_row
     else:
         for row in range(1, index_max):
@@ -152,7 +140,6 @@ def codesSheets(wb) -> dict:
         ws_xbrl = wb[sheet]
         ws_xbrl_cell = ws_xbrl.cell(3, 1)
         codes_sheets[ws_xbrl_cell.value] = sheet
-        # print(sheet, ws_xbrl_cell.value)
 
     # исключаем из списка вкладку '_dropDownSheet'
     for code in codes_sheets:
