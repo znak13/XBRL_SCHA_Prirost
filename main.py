@@ -7,6 +7,7 @@ import builtins
 from module.globals import *
 global log
 
+
 def main():
     root_files = Tk()
     root_files.geometry("350x500+600+300")
@@ -15,10 +16,10 @@ def main():
 
     # проверяем как закрыто окно и выбран ли файл
     # если файл не выбран, то повторяем цикл
-    key = {'s': file_set.file_Avancore_scha,    # сча
-           'p': file_set.file_Avancore_prirost, # прирост
-           'x': file_set.file_xbrl,             # xbrl-файл с сча
-           'n': file_set.file_new_name}         # новый xbrl-файл
+    key = {'s': file_set.file_Avancore_scha,  # сча
+           'p': file_set.file_Avancore_prirost,  # прирост
+           'x': file_set.file_xbrl,  # xbrl-файл с сча
+           'n': file_set.file_new_name}  # новый xbrl-файл
 
     # ----------------------------------------------------------
     # Включаем логировние
@@ -43,40 +44,40 @@ def main():
                 import Конвертер_СЧА_v2
                 import Конвертер_Прирост_v2
                 Конвертер_СЧА_v2.main(file_set.fondID,
-                                       file_set.dir_name,
-                                       file_set.file_new_name,
-                                       file_set.file_Avancore_scha)
+                                      file_set.dir_name,
+                                      file_set.file_new_name,
+                                      file_set.file_Avancore_scha)
                 Конвертер_Прирост_v2.main(file_set.fondID,
-                                           file_set.dir_name,
-                                           file_set.file_Avancore_prirost,
-                                           file_set.file_new_name,
-                                           report)
+                                          file_set.dir_name,
+                                          file_set.file_Avancore_prirost,
+                                          file_set.file_new_name,
+                                          report)
 
             elif key['s'] and key['n'] and not key['p'] and not key['x']:
                 print(f'Формируем только СЧА:')
                 report = 'сча'
                 import Конвертер_СЧА_v2
-                Конвертер_СЧА_v2.main(file_set.fondID_,
-                                       file_set.dir_name,
-                                       file_set.file_new_name,
-                                       file_set.file_Avancore_scha)
+                Конвертер_СЧА_v2.main(file_set.fondID,
+                                      file_set.dir_name,
+                                      file_set.file_new_name,
+                                      file_set.file_Avancore_scha)
 
             elif key['p'] and key['x'] and not key['s'] and not key['n']:
                 print(f'Формируем только Прирост:')
                 report = 'прирост'
                 import Конвертер_Прирост_v2
                 Конвертер_Прирост_v2.main(file_set.fondID,
-                                           file_set.dir_name,
-                                           file_set.file_Avancore_prirost,
-                                           file_set.file_xbrl,
-                                           report)
+                                          file_set.dir_name,
+                                          file_set.file_Avancore_prirost,
+                                          file_set.file_xbrl,
+                                          report)
 
             else:
                 print(f'Файлы выбраны не правильно!\n'
                       f'Попробуйте еще раз.')
                 main()
         else:
-            log.warning (f'Окно выбора закрыто: нажата кнопка "Close"')
+            log.warning(f'Окно выбора закрыто: нажата кнопка "Close"')
             sys.exit()
     except AttributeError as e:  # окно выбора закрыто не кнопкой
         log.error(f'Окно выбора закрыто: (AttributeError) - {e}')
@@ -85,8 +86,6 @@ def main():
         log.error(f'Ошибка: {e}')
         sys.exit()
 
-    input(f'Нажмите любую клавишу...')
 
 if __name__ == '__main__':
-    # dir_shablon = '.' + dir_shablon
     main()

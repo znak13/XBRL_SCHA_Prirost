@@ -1,7 +1,9 @@
+import sys
 from module.functions import coordinate
 from openpyxl.utils.cell import get_column_letter
 from openpyxl.utils.cell import coordinate_to_tuple
 
+from module.globals import *
 global log
 
 
@@ -35,7 +37,6 @@ def check_errors(ws, cell_avancor, row_begin, r, c, col_begin):
         or str(cell_avancor) == 'nan'
         or str(cell_avancor) == '-') \
             and col_name != 'Примечание':
-
         log.error(f'"{ws.title}"; '
                   f'строка({row_begin + r}), '
                   f'колонка({c + 1}) --> '
@@ -57,3 +58,22 @@ def empty_cell(ws, cellBegin, cellEnd):
             cellData = ws.cell(row, col).value
             if not cellData:
                 log.error(f'"{ws.title}" --> пустая ячейка "{get_column_letter(col) + str(row)}"')
+
+
+def checkSheetsInFileID(df_identifier):
+    """ Проверка файла с идентификаторами на предмет наличия всех вкладок и лишних вкладок"""
+
+    # all_sheetsID - cписок всех вкладок, которые должны быть в файде с идентификатами (27 штук)
+
+    if all_sheetsID != set(df_identifier.keys()):
+
+        for sheet in df_identifier:
+            if sheet not in all_sheetsID:
+                log.error(f'В файле с идентификаторами - лишняя вкладка - "{sheet}"')
+
+        for sheet in all_sheetsID:
+            if sheet not in df_identifier:
+                log.error(f'В файле с идентификаторами - отсутствует вкладка - "{sheet}"')
+
+        log.error(f'Выполенение программы прервано!')
+        sys.exit()

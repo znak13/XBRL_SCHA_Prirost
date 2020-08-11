@@ -202,6 +202,22 @@ def cellFormat(ws, cell, cols: int=None):
             ws.cell(row, col).alignment = Alignment(horizontal='right')
 
 
+def pathToFile(up=1, folder=None):
+    """ Путь к файлу, расположенному в папке 'folder' """
+    # up = 1  # кол-во каталогов "вверх"
+    # folder = название папки: например - 'Шаблоны'
+
+    path_to_current_file = os.path.realpath(__file__)
+    path_to_current_folder = os.path.dirname(path_to_current_file)
+    path_to_folder = path_to_current_folder.split('\\')
+    if up > 0:
+        path_to_folder = path_to_folder[:-up]
+    path_to_folder.append(folder)
+    path_to_folder = '/'.join(path_to_folder)
+
+    return path_to_folder
+
+
 # %%
 if __name__ == "__main__":
     pass

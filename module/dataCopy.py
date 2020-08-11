@@ -1,12 +1,12 @@
 from module.dataCheck import check_errors
 from module.analiz_data import analiz_data_all
 from module.functions import coordinate, find_columns_numbers, \
-    razdel_name_row, start_data_row, end_data_row, listSheetsName
+    razdel_name_row, start_data_row, end_data_row
 
 import openpyxl
 from openpyxl.styles import Font
 
-
+from module.globals import *
 global log
 
 def copy_data(ws, df_avancor, rows_numbers, columns_numbers, row_begin, col_begin):
@@ -38,9 +38,9 @@ def copy_id_fond_to_tbl(ws, id_fond):
     # а текст в ячейке начинается с 'Z= Идентификатор АИФ ПИФ-'
 
     cell_id = ws.cell(row=5, column=ws.max_column)
-    info = 'Z= Идентификатор АИФ ПИФ-'
-    if info in cell_id.value:
-        cell_id.value = info + id_fond
+    # info = 'Z= Идентификатор АИФ ПИФ-'
+    if fondIDtxt in cell_id.value:
+        cell_id.value = fondIDtxt + id_fond
 
 
 # %%
@@ -71,7 +71,7 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id):
 
             # (заводим новую переменную, т.к. если оставить (1)вариант,
             # то появляется предупреждение о возможной некорректрой работе)
-            id_names = df_id_ws[n]
+            id_names = df_id_ws[n] # значения n-го столбца в файле с идентификаторами
             id_names = id_names.apply(lambda x: x.replace(' ', ''))
 
             # Список признаков
@@ -109,7 +109,7 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id):
                 id_is = df_id_ws.loc[1, 0]
             elif sheet_name_id == 'Банковский счет':
                 # берем предыдущий 'df_priznak' () из 'df_priznak_list'
-                # (отнимаем "2",т.к. в списке 'df_priznak_list' элементф начинаются с "0")
+                # (отнимаем "2",т.к. в списке 'df_priznak_list' элементы начинаются с "0")
                 df_priznak, id_priznak = round_id(df_priznak_list[n - 2], n + 1, id_fond=id_fond)
                 # идентификатор - это превый элемент в 'df_priznak'
                 try:
