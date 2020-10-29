@@ -10,11 +10,11 @@ def toFixed(number, digits=0):
 
 
 # ==================================================================================
-
 def analiz_data_data(cell):
     """ Конвертер даты """
 
-    if type(cell) == str:
+    # если данные в ячейке, в формате "str": '17.07.2020'
+    if isinstance(cell, str):
         if len(cell.split('.')) == 3 and \
                 cell.split('.')[0].isdigit() and \
                 cell.split('.')[1].isdigit() and \
@@ -28,7 +28,7 @@ def analiz_data_data(cell):
             return cell
 
     # если данные в ячейке, в формате "дата": 2222-07-31 00:00:00
-    if type(cell) == datetime:
+    if isinstance(cell, datetime):
         return cell.strftime("%Y-%m-%d")
 
     return False
@@ -56,14 +56,14 @@ def analiz_data_strana(cell):
 def analiz_data_number_point(cell):
     """ Конвертер десятичной части """
 
-    if type(cell) == str:
-        if len(cell.split(',')) == 2 or len(cell.split('.')) == 2:  # в тексте есть ОДНА запятая или точка
-            cell = cell.replace(' ', '')  # удаляем пробелы (если есть)
-            cell = cell.replace(',', '.', 1)  # заменяем запятую на точку
+    if isinstance(cell, str):
+        # в тексте есть ОДНА запятая или точка: '1 234,567' или '1 234.567'
+        if len(cell.split(',')) == 2 or len(cell.split('.')) == 2:
+            cell = cell.replace(' ', '')  # удаляем пробелы (если есть): '1 234,567' или '1 234.567'
+            cell = cell.replace(',', '.', 1)  # заменяем запятую на точку: '1 234,567' или '1 234.567'
             try:  # пробуем преобразовать в число с 2-мя знаками после запятой
                 return f'{float(cell):.2f}'
-            except ValueError:
-                # ValueError: could not convert string to float: '...строка...'
+            except ValueError:  # ValueError: could not convert string to float: '...строка...'
                 return False
         return False
     return False
@@ -100,7 +100,7 @@ def analiz_data_number_00(cell):
     фиксируем 2 знака после запятой
     # type (cell) == 'float' или  'int'  """
 
-    if type(cell) == float or type(cell) == int:
+    if isinstance(cell, (float, int)):  # 123 или 123.4567
         return str(toFixed(cell, 2))
     return False
 
@@ -109,7 +109,7 @@ def analiz_data_number_00(cell):
 def analiz_data_number_shtuk(cell):
     """ Конвертер количество в штуках (удаляем побелы)"""
 
-    if type(cell) == str:
+    if isinstance(cell, str):  # '1 234'
         cell = cell.replace(' ', '')
         if cell.isdigit():  # если после удаления пробелов остаются только цифры
             return cell

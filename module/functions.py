@@ -1,14 +1,18 @@
 import sys
 import os
+import openpyxl
 from openpyxl.utils.cell import coordinate_from_string  # ‘B12’ -> (‘B’, 12)
-from openpyxl.utils import column_index_from_string     # 'B' -> 2
-from openpyxl.utils.cell import get_column_letter       # 3 -> 'C'
-from openpyxl.utils.cell import coordinate_to_tuple     # 'D2' -> (2,4)
+from openpyxl.utils import column_index_from_string  # 'B' -> 2
+from openpyxl.utils.cell import get_column_letter  # 3 -> 'C'
+from openpyxl.utils.cell import coordinate_to_tuple  # 'D2' -> (2,4)
 from openpyxl.styles import Alignment
 
 global log
-# %%
+from module.globals import *
+from module.data_load import load_pif_info
 
+
+# %%
 def coordinate(cell):
     """Конвртер координат: 'A10' преобразуем в '10, 1' """
     col, row = coordinate_from_string(cell)
@@ -132,7 +136,6 @@ def find_columns_numbers(df_avancor, collumn_max, max_number, data_row, data_col
 
 
 # %%
-
 def codesSheets(wb) -> dict:
     """ Словарь: URL и наименования листов """
     codes_sheets = {}
@@ -150,7 +153,8 @@ def codesSheets(wb) -> dict:
     return codes_sheets
 
 
-def sheetNameFromUrl(codesSheets: dict, shortURL: str) ->str:
+# %%
+def sheetNameFromUrl(codesSheets: dict, shortURL: str) -> str:
     """ Поиск имени вкладки по части кода формы"""
 
     for url in codesSheets:
@@ -159,18 +163,6 @@ def sheetNameFromUrl(codesSheets: dict, shortURL: str) ->str:
 
     log.error(f'В отчетном файле не найдено имя вкладки с кодом "{shortURL}"')
     sys.exit("Ошибка!")
-
-
-def find_codesSheets(wb, urls: list ):
-    """Выборка "код(короткий)-форма" из всего списка, по списку url(короткие)"""
-
-    new_codesSheets = {}
-    for code, name in codesSheets(wb).items():
-        for url in urls:
-            if code.endswith(url):
-                new_codesSheets[url] = name
-
-    return new_codesSheets
 
 
 # %%
@@ -187,7 +179,7 @@ def listSheetsName(wb, shortURLs: list) -> list:
 
 # %%
 
-def cellFormat(ws, cell, cols: int=None):
+def cellFormat(ws, cell, cols: int = None):
     """Форматируем ячейки (выравниваем по правому краю)"""
     # 'cols' - кол-во колонок, данные в которых будут отформатированы
     # (если 'cols' не задан, то форматируются данные во всех колонках, начиная с 'cell')
@@ -202,6 +194,7 @@ def cellFormat(ws, cell, cols: int=None):
             ws.cell(row, col).alignment = Alignment(horizontal='right')
 
 
+# %%
 def pathToFile(up=1, folder=None):
     """ Путь к файлу, расположенному в папке 'folder' """
     # up = 1  # кол-во каталогов "вверх"
@@ -219,5 +212,145 @@ def pathToFile(up=1, folder=None):
 
 
 # %%
+def fileName(file_name):
+    """ Имя файла без пути к нему"""
+    # пример: file_name = 'h:/_Отчетность_/Конвертер/Идентификаторы.xlsx'
+    return file_name.split('/')[-1]
+
+
+def fileDir(file_name):
+    """ Путь к файлу"""
+    # пример: file_name = 'h:/_Отчетность_/Конвертер/Идентификаторы.xlsx'
+    return '/'.join(file_name.split('/')[:-1]) + '/'
+
+
+# %%
+def fond_id_search():
+    """Построение списка идентификаторов фонда из файла"""
+
+    #Загружаем данные из файла с информацией о фондах
+    wb = openpyxl.load_workbook(dir_shablon + pif_info)
+
+    ws, table = tabl_search(wb,
+                            sheet_name=pif_info_sheet,
+                            tbl_name=pif_info_tbl_name)
+    # Номер колонки с названием "id"
+    col = col_search(ws, table, col_name='id')
+
+    min_col, min_row, max_col, max_row = \
+        openpyxl.utils.cell.range_boundaries(table.ref)
+
+    fond_id = []
+    for row in range(min_row + 1, max_row + 1):
+        fond_id.append(ws.cell(row, col).value)
+
+    return fond_id
+
+
+# %%
+def tabl_search(wb, sheet_name="", tbl_name=""):
+    """Поиск таблицы"""
+
+    ws = wb[sheet_name]
+
+    table_found = None
+
+    for tbl in ws._tables:
+        if tbl.name == tbl_name:
+            table_found = tbl
+            break
+    if not table_found:
+        log.error(f'Таблица "{tbl_name}" не найдена.')
+        log.error(f'---выполнение программы прервано---')
+        sys.exit()
+
+    # for tbl in ws._tables:
+    #     print(tbl)
+    #     print(" : " + tbl.displayName)
+    #     print("   -  name = " + tbl.name)
+    #     print("   -  type = " + (tbl.tableType if isinstance(tbl.tableType, str) else 'n/a'))
+    #     print("   - range = " + tbl.ref)
+    #     print("   - #cols = %d" % len(tbl.tableColumns))
+    #     for col in tbl.tableColumns:
+    #         print("     : " + col.name)
+
+    return ws, table_found
+
+
+def col_search(ws, table, col_name=''):
+    """Поиск номера колонки с заданным именем"""
+
+    size = table.ref  # 'C19:D27'
+    min_col, min_row, max_col, max_row = openpyxl.utils.cell.range_boundaries(size)
+    col_number = None
+
+    for col in range(min_col, max_col + 1):
+        cell = ws.cell(min_row, col).value
+        if cell == col_name:
+            col_number = col
+            break
+    if not col_number:
+        log.error(f'Колонка:"{col_name}" в таблице:"{table.name}" не найдена.')
+        log.error(f'---выполнение программы прервано---')
+        sys.exit()
+
+    return col_number
+
+def pai_search(fond_id):
+    """Точность указания паев"""
+
+    # Загружаем данные из файла с информацией о фондах
+    wb = openpyxl.load_workbook(dir_shablon + pif_info)
+
+    ws, table = tabl_search(wb,
+                            sheet_name=pif_info_sheet,
+                            tbl_name=pif_info_tbl_name)
+
+    col_id = col_search(ws, table, col_name=tbl_col_id)
+    col_pai = col_search(ws, table, col_name=tbl_col_pai)
+
+    min_col, min_row, max_col, max_row = \
+        openpyxl.utils.cell.range_boundaries(table.ref)
+    row_pai = None
+    for row in range(min_row + 1, max_row + 1):
+        cell = ws.cell(row, col_id).value
+        if cell == fond_id:
+            row_pai = row
+            break
+
+    if not row_pai:
+        log.error(f'Идентификатор:"{fond_id}" в таблице:"{table.name}" не найден.')
+        log.error(f'---выполнение программы прервано---')
+        sys.exit(1)
+
+    return ws.cell(row_pai, col_pai).value
+
+
+
+# %%
 if __name__ == "__main__":
     pass
+
+    import pandas as pd
+    import os
+    os.chdir('D:\\Clouds\\YandexDisk\\Git\\XBRL_SCHA_Prirost')
+
+
+    """Загружаем данные из файла с информацией о фондах"""
+    wb = openpyxl.load_workbook(dir_shablon + pif_info)
+
+    fond_id = 'ЗПИФ_РПИ'
+
+    # Загрузка файла с Идентификаторами
+    ws_SD = pd.read_excel(dir_shablon + pif_info,
+                                  sheet_name=fond_id,
+                                  index_col=0,
+                                  header=None)
+    sd_name = ws_SD.loc['СД',1]
+    sd_inn = ws_SD.loc['СД_ИНН',1]
+    sd_ogrn = ws_SD.loc['СД_ОГРН',1]
+
+    sd = [sd_name, sd_inn, sd_ogrn]
+
+    for n,col in enumerate (range(3, 6)):
+        ws_xbrl.cell(8, col).value = sd[n]

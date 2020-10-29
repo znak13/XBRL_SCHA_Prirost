@@ -47,7 +47,7 @@ def main(id_fond, path_to_report, file_new_name, file_Avancore_scha):
     # Формируем итоговые формы-расшифровки
     rf.rashifr(wb, df_avancor, df_identifier, id_fond)
     # Формирование форм СЧА - падписанты
-    pp.podpisant(wb, df_avancor, df_identifier, id_fond)
+    pp.podpisant(wb, df_avancor, id_fond)
     # Формирование форм СЧА - пояснительные записки
     zap.zapiski_new(wb, df_avancor, id_fond)
     # Удаляем формы-Прироста, которые не заполняются

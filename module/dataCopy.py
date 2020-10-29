@@ -1,10 +1,11 @@
+import openpyxl
+from openpyxl.styles import Font
+
 from module.dataCheck import check_errors
+from module.dataCheck import red_error
 from module.analiz_data import analiz_data_all
 from module.functions import coordinate, find_columns_numbers, \
     razdel_name_row, start_data_row, end_data_row
-
-import openpyxl
-from openpyxl.styles import Font
 
 from module.globals import *
 global log
@@ -47,8 +48,8 @@ def copy_id_fond_to_tbl(ws, id_fond):
 def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id):
     """ Определение идентификатора
         :ws: форма в отчетности xbrl
-        :sheet_name_id: название листа с идентификатором
-        :row: текущая строка в в таблице xbrl
+        :sheet_name_id: название листа с в фойле с идентификаторами
+        :row_i: текущая строка в в таблице xbrl
         :col_begin: начальная колонка в таблице xbrl
         :id_fond: идентификатор фонда
         :return 'id_is': искомый идентификатор
@@ -81,17 +82,19 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id):
             # Если находим признак в строке, то прерываем перебор колонок
             # if id_priznak in df_priznak[n].to_list():                     # (1)вариант без новой переменной
             # (перед сравнением удаляем лишние пробелы)
+
             if id_priznak in [x.replace(' ', '') for x in df_priznak[n].to_list()]:
                 break
 
+
         return df_priznak, id_priznak
 
-    df_id_ws = df_id[sheet_name_id]
+    df_priznak = df_id[sheet_name_id]   # текущий df
     # Меняем тип всех данных на "str"
     # (это необходимо для корректного сравнения в дальнейшем)
-    df_id_ws = df_id_ws.astype(str)
+    df_priznak = df_priznak.astype(str)
 
-    df_priznak = df_id_ws  # текущий df
+    # df_priznak = df_id_ws  # текущий df
     df_priznak_list = []  # список найденных df
     id_is = None  # искомый идентификатор
 
@@ -106,7 +109,8 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id):
             break
         elif df_priznak.index.size == 0:  # если список признаков пуст, то ищем по 'id_fond'
             if sheet_name_id == 'Биржа':  # идентификатор не найден
-                id_is = df_id_ws.loc[1, 0]
+                id_is = df_priznak.loc[1, 0]
+                # id_is = no_birzha
             elif sheet_name_id == 'Банковский счет':
                 # берем предыдущий 'df_priznak' () из 'df_priznak_list'
                 # (отнимаем "2",т.к. в списке 'df_priznak_list' элементы начинаются с "0")
@@ -118,7 +122,7 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id):
                     log.error(f'в файле "Идентификаторы" не указан расчетный счет фонда')
             else:
                 id_is = 'ошибка'
-                log.error(f'"{ws.title}" --> не определен "{df_id_ws.loc[0, 0]}", строка:{row_i} ')
+                log.error(f'"{ws.title}" --> не определен "{df_priznak.loc[0, 0]}", строка:{row_i} ')
 
             break
         else:
@@ -129,7 +133,7 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id):
     else:
         id_is = 'ошибка'
         log.error(f'Идентификатор не найден: '
-                  f'"{ws.title}", "{df_id_ws.loc[0, 0]}", строка:{row_i}')
+                  f'"{ws.title}", "{df_priznak.loc[0, 0]}", строка:{row_i}')
 
         return id_is
 
@@ -138,6 +142,7 @@ def id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id):
 
 def insert_id(ws, id_row, id_cols, df_id, rows_numbers, row_begin, col_begin, id_fond):
     """ Находим и вставляем идентификаторы в ячейки"""
+    # id_cols - номера колонок с иденитификаторами в таблице XBRL
 
     # словарь ВСЕХ названий идетификаторов (полные) и имен вкладок (сокращенные)
     list_id = {(df_id[k].loc[0, 0]): k for k in df_id.keys()}
@@ -156,82 +161,41 @@ def insert_id(ws, id_row, id_cols, df_id, rows_numbers, row_begin, col_begin, id
             id_is = id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id)
 
             # записываем название идентификатора в таблицу xbrl
-            ws.cell(row_i, id_cols[i]).value = id_is
+            cell = ws.cell(row_i, id_cols[i])
+            cell.value = id_is
 
             # отмечаем красным цветом ошибку
             if id_is == "ошибка":
-                # красный цвет
-                color_font = openpyxl.styles.colors.Color(rgb='FFFF0000')
-                ws.cell(row_i, id_cols[i]).font = Font(color=color_font)
+                red_error(cell)
+                # # красный цвет
+                # color_font = openpyxl.styles.colors.Color(rgb='FFFF0000')
+                # ws.cell(row_i, id_cols[i]).font = Font(color=color_font)
 
 
 # %%
-
-def copy_zapiski(wb, df_matrica, df_avancor, urlSheets, id_fond):
-    # кол-во строк и столбцов в файле Аванкор
-    index_max = df_avancor.shape[0]
-    collumn_max = df_avancor.shape[1]
-
-    zapiski_null = []  # список пустых форм
-    for url, form in urlSheets.items():
-
-        print(f'{form}')
-        ws = wb[form]
-        # находим, используя матрицу, раздел в файле-Аванкор, соответствующий выбранной форме
-        title_1_name = df_matrica.loc[url, 'sheet_1_title']
-
-        if title_1_name == title_1_name:
-            # если ячейка в столбце "sheet_1_title" пустая, то "title_1_name == nan"
-            # в этом случае: bool(title_1_name == title_1_name) == Fals
-            # (...странно, но работает)
-
-            # Номер строки с названием раздела в файле Аванкор"""
-            title_row = razdel_name_row(df_avancor, title_1_name, index_max)
-
-            # находим номер первой строку с данными в файле Аванкор
-            data_row = start_data_row(df_avancor, index_max, title_row)
-
-            # находим номер последней строки с данными в таблице Аванкор"""
-            row_end = end_data_row(df_avancor, index_max, data_row)
-
-            if df_avancor.loc[row_end - 1, 3] != '2':
-                # список всех номеров строк в таблице Аванкор
-                rows_numbers = [x for x in range(data_row, row_end)]
-            else:
-                # Если в соседней ячейке(колонка "C") == "2", то это заголовок таблицы
-                # и, следовательно, форма пустая
-                # Запоминаем название вкладки
-                zapiski_null.append(form)
-                # переходим к поиску следующего раздела
-                continue
-
-            # цифра в последней колонке и номер строки с идектификаторами в таблице XBRL
-            # (количество колонок для копирования)
-            max_number = df_matrica.loc[url, 'tbl_col']
-
-            # координаты первой ячейки в таблице XBRL
-            cell_start = df_matrica.loc[url, 'cell2']
-            cell_start_row, cell_start_col = coordinate(cell_start)
-
-            # Номера колонок в таблице Аванкор, за исключением пустых
-            columns_numbers = find_columns_numbers(df_avancor, collumn_max, max_number, data_row, data_col=3)
-
-            # Записываем в форму идентификатор фонда
-            copy_id_fond_to_tbl(ws, id_fond)
-
-            # Копирование данных из таблицы Аванков в таблицу XBRL
-            copy_data(ws, df_avancor, rows_numbers, columns_numbers, cell_start_row, cell_start_col)
-
-            log.error(f'"{ws.title}" --> вставьте "Идентификатор строки"')
-
-        else:
-            # "title_1_name = nan" - в файле-Аванкор нет раздела, соответствующего этой форме
-            zapiski_null.append(form)
-
-    return zapiski_null
 
 if __name__ == "__main__":
     # красный цвет
     # color_font = openpyxl.styles.colors.Color(rgb='FFFF0000')
     # ws_xbrl[cell.coordinate].font = Font(color=color_font)
     pass
+
+
+    # ----------------------------------------------------------
+    from module.data_load import load_info_from_files
+
+    # Папка с шаблонами
+    dir_shablon = r'../Шаблоны/'
+    path_to_report = '.' + dir_reports + '/2020_09/'
+    file_Avancore_scha = 'ЗПИФ_Азов_сча.xlsx'
+    file_new_name = '1122334455.xlsx'
+
+    df_identifier, df_avancor, wb = load_info_from_files(dir_shablon,
+                                                         fileID,
+                                                         path_to_report,
+                                                         file_Avancore_scha,
+                                                         file_new_name)
+
+    # ----------------------------------------------------------
+
+    # id_is = id_serch(ws, sheet_name_id, row_i, col_begin, id_fond, df_id)

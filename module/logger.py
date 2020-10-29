@@ -2,8 +2,8 @@ import logging
 
 
 def create_log(path="",
-               file_log='errors.log', mode='a',
-               file_debug='debug.log', filemode='a'):
+               file_log='errors.log', mode='a',         # 'a' - дописывать, 'w' - перезаписывать
+               file_debug='debug.log', filemode='a'):   # 'a' - дописывать, 'w' - перезаписывать
     """ Включаем логировние"""
     # path - путь к лог-файлам
 

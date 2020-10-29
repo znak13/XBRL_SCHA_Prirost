@@ -1,11 +1,17 @@
 """ Корректировки содержания форм отчетности после копирования данных из файла Аванкор"""
 
+import pandas as pd
 from openpyxl.styles import Alignment
+from openpyxl.utils import column_index_from_string  # 'B' -> 2
 from module.functions import razdel_name_row, coordinate
 from module.functions import codesSheets, listSheetsName, sheetNameFromUrl
+from module.functions import razdel_name_row, start_data_row, end_data_row, find_columns_numbers
 from module.analiz_data import analiz_data_data, toFixed
+from module.dataCheck import red_error
 
 global log
+from module.globals import *
+
 
 def corrector_scha_01(wb, df_id, id_fond, shortURL=None):
     """ Меняем местами значения ячеек и добавляем id фонда и УК"""
@@ -24,7 +30,8 @@ def corrector_scha_01(wb, df_id, id_fond, shortURL=None):
 
     # Записываем в форму идентификаторы: фонда и УК
     ws_change.cell(10, 1).value = id_fond
-    ws_change.cell(10, 2).value = df_id['УК АИФ ПИФ'].loc[1, 0]
+    # ws_change.cell(10, 2).value = df_id['УК АИФ ПИФ'].loc[1, 0]
+    ws_change.cell(10, 2).value = uk_ogrn
 
 
 # %%
@@ -128,39 +135,42 @@ def corrector_scha_51_(ws, df_identifier):
     # 0420502 Справка о стоимости _51   SR_0420502_Rasshifr_Akt_P7_7
 
     """ 
-    Вставляем подробное описание имущества.
-    Колонка(3): 'Сведения, позволяющие определенно установить имущество'
+    Вставляем подробное описание имущества в файле XBRL,
+    колонка(3): 'Сведения, позволяющие определенно установить имущество'
     """
 
     # Определяем рабочий лист в фале-Идентификаторы
     identifier_sheetname = 'Иное имущество'
     identifier_ws = df_identifier[identifier_sheetname]
 
-    ws_row_begin = 11  # начальная строка в конечном файле
-    ws_column_id = 2  # колонка с идентификаторами: "Вид иного имущества"
-    ws_column = ws_column_id + 1  # колонка с описанием имущества в конечном файле
+    ws_row_begin = 11  # начальная строка в файле XBRL
+    ws_column_id = 2  # колонка с идентификаторами: "Вид иного имущества" в файле XBRL
+    ws_column = ws_column_id + 1  # колонка с описанием имущества в файле XBRL
 
     identifier_row_begin = 1  # начальная строка в файле-Идентификаторы
     identifier_column_id = 0  # колонка с идентификаторами в файле-Идентификаторы
     identifier_column = identifier_column_id + 2  # колонка с описанием имущества в файле-Идентификаторы
     identifier_max_row = identifier_ws.shape[0]  # количество строк в файле-Идентификаторы
 
-    # Перебираем строки с идентификаторами в конечном файле
+    # Перебираем строки с идентификаторами в файле XBRL
     for wb_row in range(ws_row_begin, ws.max_row):
+        # название идентификатора в ячейке в файле XBRL
         wb_cell = ws.cell(wb_row, ws_column_id)
-        # перебираем ячейки в файле-Идентификатор
+        # перебираем строки в файле-Идентификатор
         for df_row in range(identifier_row_begin, identifier_max_row):
+            # название идентификатора в файле-Идентификатор
             df_cell = identifier_ws.loc[df_row, identifier_column_id]
-            # Сравниваем значения и если совпадают,
-            # то записываем в конечный файл описание имущества из файла-Идентификатор
+            # Сравниваем значения: если совпадают, то
+            # записываем в файл XBRL описание имущества из файла-Идентификатор
             if wb_cell.value == df_cell:
-                ws.cell(wb_row, ws_column).value = identifier_ws.loc[identifier_row_begin, identifier_column]
+                ws.cell(wb_row, ws_column).value = identifier_ws.loc[df_row, identifier_column]
 
     """ 
-    Убираем значение из итоговой строки.
+    Убираем значение из итоговой строки в файле XBRL.
     Колонка(4): 'Иное имущество - Количество в составе активов, штук'
     """
     ws.cell(ws.max_row, 4).value = ''
+
 
 # %%
 def corrector_Podpisant_3_(ws_xbrl, df_identifier, id_fond):
@@ -182,7 +192,287 @@ def corrector_Podpisant_3_(ws_xbrl, df_identifier, id_fond):
         ws_xbrl.cell(8, col).value = str(requisites.loc[0, col])
 
 
+def corrector_Podpisant_3_v2(ws_xbrl, id_fond):
+    # Загрузка файла
+    ws_SD = pd.read_excel(dir_shablon + pif_info,
+                          sheet_name=id_fond,
+                          index_col=0,
+                          header=None)
+    sd_name = ws_SD.loc['СД', 1]
+    sd_inn = ws_SD.loc['СД_ИНН', 1]
+    sd_ogrn = ws_SD.loc['СД_ОГРН', 1]
+    sd = [sd_name, sd_inn, sd_ogrn]
+
+    for n, col in enumerate(range(3, 6)):
+        ws_xbrl.cell(8, col).value = sd[n]
+
+
+# %%
+def depozitID(df_avancor, avancoreTitle, max_number=10):
+    """ При наличии депозитов, в файле-Аванкор нужно обязательно указывать номер счета депозита"""
+    # Раздел - '1.2. Денежные средства на счетах по депозиту в кредитных организациях'
+    # max_number - количество колонок в таблице
+
+    # row_data, row_end - номер первой и последней строки с данными в таблице Аванкор
+    row_data, row_end = data_search(df_avancor, avancoreTitle)
+
+    # кол-во столбцов в файле Аванкор
+    collumn_max = df_avancor.shape[1]
+    # Если номера первой и последней строки НЕ совпадают, то Раздел содержит данные
+    if row_data != row_end:
+        # Номера колонок в таблице Аванкор, за исключением пустых"""
+        columns_numbers = find_columns_numbers(df_avancor, collumn_max, max_number, row_data)
+        # номер последней колонки в таблице ('Примечание')
+        col_prim = columns_numbers[-1]
+        for row in range(row_data, row_end):
+            if df_avancor.loc[row, col_prim] == '-':
+                log.error(f'файл: Аванкор(СЧА) - раздел:"{avancoreTitle}", строка:({row}) '
+                          f'- в колонке "Примечание" укажите номер счета депозита')
+
+
+# %%
+def data_search(df_avancor, avancoreTitle):
+    """ Поиск в таблице-Аванкор наличия строк с данными"""
+
+    # Кол-во строк и столбцов в файле Аванкор
+    index_max = df_avancor.shape[0]
+    collumn_max = df_avancor.shape[1]
+
+    # Номер строки с названием раздела в файле Аванкор"""
+    title_row = razdel_name_row(df_avancor, avancoreTitle, index_max)
+
+    # находим номер первой строку с данными в файле Аванкор
+    row_data = start_data_row(df_avancor, index_max, title_row)
+
+    # находим номер последнке строки с данными в таблице Аванкор"""
+    row_end = end_data_row(df_avancor, index_max, row_data)
+
+    return row_data, row_end
+
+
+def corrector_00(ws, row: int = None, col: str = None):
+    """ Убираем лишние '.00' в конце строки,
+    которые могут появиться после копирования данных"""
+    # (например при копировании ИНН: "7705373131" => "7705373131.00" )
+    # row: int - начальная строка столбца с данными
+    # col: str - колонка столбца с данными
+
+    col = column_index_from_string(col)
+    for r in range(row, ws.max_row + 1):
+        cell = ws.cell(r, col)
+        value = cell.value
+        # в тексте есть '.00'
+        if value.endswith('.00'):
+            value = value[:-3]
+            cell.value = value
+
+
+def copy_cells_one2one(ws, row_begin, col_to, col_from,
+                       del_old_sell=False, id_fond=''):
+    if id_fond:
+        id_fond = '_(' + id_fond + ')'
+
+    for row in range(row_begin, ws.max_row):
+        ws.cell(row, column_index_from_string(col_to)).value = \
+            ws.cell(row, column_index_from_string(col_from)).value + id_fond
+
+        if del_old_sell:  # стираем значение в ячейке, изх которой копировали
+            ws.cell(row, column_index_from_string(col_from)).value = ""
+
+
+def copy_bank_account(id_fond, wb_pif_info, ws, row_begin, col_to, col_from):
+    """Копирование банковского счета"""
+
+    # from openpyxl.styles import colors
+    # from openpyxl.styles import Font
+
+    sheet_name = id_fond
+    title = 'тип счета'
+    ws_pif_info = wb_pif_info[sheet_name]
+    col_pif = 'B'
+
+    for row_ws in range(row_begin, ws.max_row):
+        prim = str(ws.cell(row_ws, column_index_from_string(col_from)).value)
+        # если в ячейке цифра со знаками после запятой, то берем только целую часть
+        # (может появиться после анализа данных при копировании из Аванкор )
+        prim = prim.split('.')[0]
+        # print(prim)
+        cell_to = ws.cell(row_ws, column_index_from_string(col_to))
+        if prim and prim == prim and prim != 'None':
+            for row_pif in range(1, ws_pif_info.max_row):
+                # номер счета
+                bank_account = str(ws_pif_info.cell(row_pif, column_index_from_string(col_pif)).value)
+                # если номер счета заканчивается на 'prim'
+                if bank_account.endswith(prim):
+                    # копируем номер счета из файла "pif_info"
+                    cell_to.value = bank_account
+
+                    # стираем значение в ячейке "Примечание"
+                    ws.cell(row_ws, column_index_from_string(col_from)).value = ""
+        else:
+            red_error(cell_to)
+
+            # cell_to.value = "ошибка"
+            # # красный цвет
+            # color_font = colors.Color(rgb='FFFF0000')
+            # cell_to.font = Font(color=color_font)
+
+
+            log.error(f'"{ws.title}"; строка:"{row_ws}" --> не указан счёт в кредитной организации')
+
+def make_id(txt: str, start=1, end=2) -> str:
+    """Создание идентификатора из текста"""
+
+    start = start - 1
+    id_txt = txt.split()[start:end]
+    return '_'.join(id_txt)
+
+
+def copy_path_of_cells(ws, row_begin, col_to, col_from):
+    for n, row in enumerate(range(row_begin, ws.max_row), 1):
+        txt_from = ws.cell(row, column_index_from_string(col_from)).value
+        id_txt = make_id(txt_from) + '_' + str(n)
+        ws.cell(row, column_index_from_string(col_to)).value = id_txt
+
+
+def copy_hash_of_cells(id_fond, ws, row_begin, col_to, col_from,
+                       word_start=0, word_end=2,
+                       delta=False, fio=False, dogovor_n=False, fond_name=False):
+    """Строим идентификатор из строки"""
+    # delta - добавляем индекс после идентификатора
+    # (для исключения появления одинаковых идентификаторов)
+
+    for n, row in enumerate(range(row_begin, ws.max_row), 1):
+        txt_from = str(ws.cell(row, column_index_from_string(col_from)).value)
+        txt_from_list = txt_from.split()
+
+        # если слов в строке меньше, чем 'word_end', то уменьшаем 'word_end'
+        if len(txt_from_list) < word_end:
+            word_end = len(txt_from_list)
+
+        # если последнее слово состоит менее чем из 3-х букв, то исключаем его
+        if len(txt_from_list[word_end - 1]) < 3:
+            word_end -= 1
+
+        txt_list = txt_from_list[word_start:word_end]
+
+        # удаляем точку в конце последнего слова
+        # (актуально при копировании паспортных данных)
+        if len(txt_list) == 2:
+            if txt_list[1].endswith('.'):
+                txt_list[1] = txt_list[1][:-1]
+
+        first_word = '_'.join(txt_list)
+        id_txt = ""
+
+        # ...если нужно, то добавляем порядковый номер требования
+        if delta:
+            id_txt = '(' + str(n) + ')'
+
+        # Если Основания начинается с "Налоговый кодекс"
+        nk = 'Налоговый кодекс'
+        if txt_from.startswith(nk):
+            # допавляем "nk"
+            id_txt = id_txt + '_' + nk
+            # и добавляем только 'id_fond'
+
+        else:  # продолжаем анализ
+
+            # ...если нужно вставить Фамилию
+            if fio:
+                initials = fio_initials(ws.cell(row, column_index_from_string(fio)).value)
+                if id_txt:
+                    id_txt = id_txt + '_' + initials
+                else:
+                    id_txt = initials
+
+            # добавляем 'first_word'
+            id_txt = id_txt + '_' + first_word
+
+            # ...если нужно, то ищим номер договора:
+            if dogovor_n:
+                num = '№'
+                # если последнее слово - это '№', то исключаем его,
+                # т.к. '№' будет вставлен на следующем шаге
+                if txt_from_list[word_end - 1].startswith(num):
+                    word_end -= 1
+
+                nomber = find_nomber(txt_from, n=num)
+                if nomber:  # если найден номер, то
+
+                    if (num + first_word) != str(nomber):
+                        # строка состоит их нескольких слов
+                        id_txt = id_txt + '_' + str(nomber)
+                    else:
+                        # строка состоит их одного слова, это - 'nomber'.
+                        # в этом случае, для исключения задвоения,
+                        # не прописываем 'first_word'
+                        # и добавляем слово 'Договор №'
+                        id_txt = '(' + str(n) + ')_' + \
+                                 'Договор_' + str(nomber)
+
+        # ...если нужно, добавляем 'id_fond'
+        if fond_name:
+            id_txt = id_txt + '_' + '(' + id_fond + ')'
+
+        ws.cell(row, column_index_from_string(col_to)).value = id_txt
+        # + '_(' + str(hash(txt_from)) + ')'
+
+
+def find_nomber(txt, n='№'):
+    """Поиск в строке фрагмента 'n'(номер договора)"""
+    # n - элемент, с которого начинается искомый fragment
+    stop = False
+    fragment = None
+    txt_list = txt.split()
+    for i, word in enumerate(txt_list):
+        if word.startswith(n):
+            # состоит только из '№'
+            if len(txt_list[i]) == 1:
+                fragment = n + txt_list[i + 1]
+                stop = True
+                break
+            else:
+                fragment = txt_list[i]
+                stop = True
+                break
+    # если во всех словах не найден "№"
+    if not stop:
+        for i, word in enumerate(txt_list):
+            # слово состоит не только из букв
+            # или не заканчивается на точку
+            # или не является датой
+            if not word.isalpha() and \
+                    not word.endswith('.') and \
+                    len(word.split('.')) < 3:
+                fragment = n + txt_list[i]
+                break
+
+    return fragment
+
+
+def fio_initials(txt):
+    """ Фамиоие и инициалы физ.лица"""
+    txt_list = txt.split()
+    return txt_list[0] + ' ' + txt_list[1][0].upper() + '.' + txt_list[2][0].upper() + '.'
+
+def copy_birzha_id(ws, row_begin, col_to, col_from):
+    """Копирование идентификатора Биржи"""
+
+    for n, row in enumerate(range(row_begin, ws.max_row), 1):
+        txt_from = ws.cell(row, column_index_from_string(col_from)).value
+        if not txt_from:
+            ws.cell(row, column_index_from_string(col_to)).value = no_birzha
+        else:
+            ws.cell(row, column_index_from_string(col_to)).value = \
+                ws.cell(row, column_index_from_string(col_from)).value
+
+
+
 # %%
 
 if __name__ == "__main__":
     pass
+    txt = 'Договор купли-продажи объектов недвижимости № А-56 от 25.06.2020 г.'
+    # q = find_nomber(txt, n='№')
+    q = fio_initials(txt)

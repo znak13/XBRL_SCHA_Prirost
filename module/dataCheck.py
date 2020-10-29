@@ -3,12 +3,15 @@ from module.functions import coordinate
 from openpyxl.utils.cell import get_column_letter
 from openpyxl.utils.cell import coordinate_to_tuple
 
+from openpyxl.styles import colors
+from openpyxl.styles import Font
+
 from module.globals import *
 global log
 
 
 def find_parametr(ws, row_begin, col):
-    """ Находим название столбца при определении возможной ошибки"""
+    """ Находим название столбца при определении возможной ошибки """
 
     for row in range(1, 10):
         cell = ws.cell(row_begin - row, col).value
@@ -77,3 +80,13 @@ def checkSheetsInFileID(df_identifier):
 
         log.error(f'Выполенение программы прервано!')
         sys.exit()
+
+def red_error(cell):
+    """Окрашивание ошибки в красный цвет"""
+    # from openpyxl.styles import colors
+    # from openpyxl.styles import Font
+
+    cell.value = "ошибка"
+    # красный цвет
+    color_font = colors.Color(rgb='FFFF0000')
+    cell.font = Font(color=color_font)
