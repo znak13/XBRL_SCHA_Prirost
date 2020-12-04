@@ -2,7 +2,7 @@ import sys
 from module.functions import coordinate
 from openpyxl.utils.cell import get_column_letter
 from openpyxl.utils.cell import coordinate_to_tuple
-
+from openpyxl.utils import column_index_from_string  # 'B' -> 2
 from openpyxl.styles import colors
 from openpyxl.styles import Font
 
@@ -86,7 +86,18 @@ def red_error(cell):
     # from openpyxl.styles import colors
     # from openpyxl.styles import Font
 
-    cell.value = "ошибка"
+    cell.value = error_txt
     # красный цвет
     color_font = colors.Color(rgb='FFFF0000')
     cell.font = Font(color=color_font)
+
+def id_errors(ws, columns:(list or tuple), row_begin:int = 11 ):
+    """Проверяем ячейки с идентификаторами на предмет отсутствия идентификатора.
+    Если ячейка пустая, то это ошибка, т.к. обязательно должен быть указан идентификатор."""
+
+    for row in range(row_begin, ws.max_row):
+        for col in columns:
+            cell = ws.cell(row, column_index_from_string(col))
+            if cell.value in [None, error_txt]:
+                red_error(cell)
+                log.error(f'"{ws.title}", строка({row}), колонка({col}) --> отсутствует Идентификатор')

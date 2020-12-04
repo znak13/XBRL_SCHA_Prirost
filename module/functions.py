@@ -3,13 +3,12 @@ import os
 import openpyxl
 from openpyxl.utils.cell import coordinate_from_string  # ‘B12’ -> (‘B’, 12)
 from openpyxl.utils import column_index_from_string  # 'B' -> 2
-from openpyxl.utils.cell import get_column_letter  # 3 -> 'C'
-from openpyxl.utils.cell import coordinate_to_tuple  # 'D2' -> (2,4)
+# from openpyxl.utils.cell import get_column_letter  # 3 -> 'C'
+# from openpyxl.utils.cell import coordinate_to_tuple  # 'D2' -> (2,4)
 from openpyxl.styles import Alignment
-
-global log
 from module.globals import *
-from module.data_load import load_pif_info
+global log
+# from module.data_load import load_pif_info
 
 
 # %%
@@ -110,14 +109,17 @@ def end_data_row(df_avancor, index_max, data_row, title_col=2):
     if data == 'Итого' or str(data) == 'nan' or str(data).startswith('Оценочная стоимость'):
         # (' - раздел пуст')
         row_end = data_row
+        return row_end
     else:
         for row in range(1, index_max):
             data_i = df_avancor.loc[data_row + row, title_col]
             if data_i == 'Итого' or str(data_i) == 'nan':
                 row_end = data_row + row
-                break
+                return row_end
 
-    return row_end
+    return log.error(f'не найдена последняя строка с данными таблице Аванкор:'
+                     f'название таблицы: "{data}"'
+                     f'номер первой строки "{data_row}"')
 
 
 # %%
@@ -228,7 +230,7 @@ def fileDir(file_name):
 def fond_id_search():
     """Построение списка идентификаторов фонда из файла"""
 
-    #Загружаем данные из файла с информацией о фондах
+    # Загружаем данные из файла с информацией о фондах
     wb = openpyxl.load_workbook(dir_shablon + pif_info)
 
     ws, table = tabl_search(wb,
@@ -256,8 +258,8 @@ def tabl_search(wb, sheet_name="", tbl_name=""):
     table_found = None
 
     for tbl in ws._tables:
-        if tbl.name == tbl_name:
-            table_found = tbl
+        if ws._tables[tbl].name == tbl_name:
+            table_found = ws._tables[tbl]  # tbl
             break
     if not table_found:
         log.error(f'Таблица "{tbl_name}" не найдена.')
@@ -296,6 +298,7 @@ def col_search(ws, table, col_name=''):
 
     return col_number
 
+
 def pai_search(fond_id):
     """Точность указания паев"""
 
@@ -326,31 +329,6 @@ def pai_search(fond_id):
     return ws.cell(row_pai, col_pai).value
 
 
-
 # %%
 if __name__ == "__main__":
     pass
-
-    import pandas as pd
-    import os
-    os.chdir('D:\\Clouds\\YandexDisk\\Git\\XBRL_SCHA_Prirost')
-
-
-    """Загружаем данные из файла с информацией о фондах"""
-    wb = openpyxl.load_workbook(dir_shablon + pif_info)
-
-    fond_id = 'ЗПИФ_РПИ'
-
-    # Загрузка файла с Идентификаторами
-    ws_SD = pd.read_excel(dir_shablon + pif_info,
-                                  sheet_name=fond_id,
-                                  index_col=0,
-                                  header=None)
-    sd_name = ws_SD.loc['СД',1]
-    sd_inn = ws_SD.loc['СД_ИНН',1]
-    sd_ogrn = ws_SD.loc['СД_ОГРН',1]
-
-    sd = [sd_name, sd_inn, sd_ogrn]
-
-    for n,col in enumerate (range(3, 6)):
-        ws_xbrl.cell(8, col).value = sd[n]

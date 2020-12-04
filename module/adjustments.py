@@ -293,10 +293,12 @@ def copy_bank_account(id_fond, wb_pif_info, ws, row_begin, col_to, col_from):
 
     for row_ws in range(row_begin, ws.max_row):
         prim = str(ws.cell(row_ws, column_index_from_string(col_from)).value)
+
         # если в ячейке цифра со знаками после запятой, то берем только целую часть
         # (может появиться после анализа данных при копировании из Аванкор )
         prim = prim.split('.')[0]
         # print(prim)
+
         cell_to = ws.cell(row_ws, column_index_from_string(col_to))
         if prim and prim == prim and prim != 'None':
             for row_pif in range(1, ws_pif_info.max_row):
@@ -309,6 +311,7 @@ def copy_bank_account(id_fond, wb_pif_info, ws, row_begin, col_to, col_from):
 
                     # стираем значение в ячейке "Примечание"
                     ws.cell(row_ws, column_index_from_string(col_from)).value = ""
+
         else:
             red_error(cell_to)
 
@@ -316,9 +319,7 @@ def copy_bank_account(id_fond, wb_pif_info, ws, row_begin, col_to, col_from):
             # # красный цвет
             # color_font = colors.Color(rgb='FFFF0000')
             # cell_to.font = Font(color=color_font)
-
-
-            log.error(f'"{ws.title}"; строка:"{row_ws}" --> не указан счёт в кредитной организации')
+            # log.error(f'"{ws.title}"; строка:"{row_ws}" --> не указан счёт в кредитной организации')
 
 def make_id(txt: str, start=1, end=2) -> str:
     """Создание идентификатора из текста"""
