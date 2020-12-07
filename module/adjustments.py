@@ -3,17 +3,19 @@
 import pandas as pd
 from openpyxl.styles import Alignment
 from openpyxl.utils import column_index_from_string  # 'B' -> 2
-from module.functions import razdel_name_row, coordinate
-from module.functions import codesSheets, listSheetsName, sheetNameFromUrl
+from module.functions import coordinate
+from module.functions import codesSheets, sheetNameFromUrl
 from module.functions import razdel_name_row, start_data_row, end_data_row, find_columns_numbers
+from module.functions import pai_search
 from module.analiz_data import analiz_data_data, toFixed
 from module.dataCheck import red_error
+from module.globals import *
+# from module.data_load import load_pif_info
 
 global log
-from module.globals import *
 
 
-def corrector_scha_01(wb, df_id, id_fond, shortURL=None):
+def corrector_scha_01(wb, id_fond, shortURL=None):
     """ Меняем местами значения ячеек и добавляем id фонда и УК"""
     # Форма:
     # 0420502 Справка о стоимости чис   SR_0420502_R1
@@ -104,14 +106,22 @@ def corrector_scha_03to12_(wb_xbrl, df_avancor, cell_period, shortURL=None):
 
 
 # %%
-def corrector_scha_13_(id_fond, ws, df_avancor, df_id):
+def corrector_scha_13_(id_fond, ws, df_avancor):
     """ Копируем количество паев с нужной точностью """
     # форма:
     # 0420502 Справка о стоимости _13
 
     # Точность указания кол-ва паев
-    df_id_ws = df_id['ПИФ']
-    fix = df_id_ws[df_id_ws[0] == id_fond][2].values[0]
+    fix = pai_search(id_fond)
+    # или так:
+    # wb_pif_info = load_pif_info(file_name=pif_info,
+    #                                 path_2file=dir_shablon)
+    # sheet_name = id_fond
+    # ws_pif_info = wb_pif_info[sheet_name]
+    # col_fIx = 'B'
+    # row_fix = 2
+    # cell = col_fIx + str(row_fix)
+    # fix = ws_pif_info[cell].value
 
     today_row, today_col = coordinate('I144')
     previous_row, previous_col = coordinate('K144')
@@ -129,68 +139,6 @@ def corrector_scha_13_(id_fond, ws, df_avancor, df_id):
 
 
 # %%
-def corrector_scha_51_(ws, df_identifier):
-    """ Вставляем подробное описание имущества """
-    # форма:
-    # 0420502 Справка о стоимости _51   SR_0420502_Rasshifr_Akt_P7_7
-
-    """ 
-    Вставляем подробное описание имущества в файле XBRL,
-    колонка(3): 'Сведения, позволяющие определенно установить имущество'
-    """
-
-    # Определяем рабочий лист в фале-Идентификаторы
-    identifier_sheetname = 'Иное имущество'
-    identifier_ws = df_identifier[identifier_sheetname]
-
-    ws_row_begin = 11  # начальная строка в файле XBRL
-    ws_column_id = 2  # колонка с идентификаторами: "Вид иного имущества" в файле XBRL
-    ws_column = ws_column_id + 1  # колонка с описанием имущества в файле XBRL
-
-    identifier_row_begin = 1  # начальная строка в файле-Идентификаторы
-    identifier_column_id = 0  # колонка с идентификаторами в файле-Идентификаторы
-    identifier_column = identifier_column_id + 2  # колонка с описанием имущества в файле-Идентификаторы
-    identifier_max_row = identifier_ws.shape[0]  # количество строк в файле-Идентификаторы
-
-    # Перебираем строки с идентификаторами в файле XBRL
-    for wb_row in range(ws_row_begin, ws.max_row):
-        # название идентификатора в ячейке в файле XBRL
-        wb_cell = ws.cell(wb_row, ws_column_id)
-        # перебираем строки в файле-Идентификатор
-        for df_row in range(identifier_row_begin, identifier_max_row):
-            # название идентификатора в файле-Идентификатор
-            df_cell = identifier_ws.loc[df_row, identifier_column_id]
-            # Сравниваем значения: если совпадают, то
-            # записываем в файл XBRL описание имущества из файла-Идентификатор
-            if wb_cell.value == df_cell:
-                ws.cell(wb_row, ws_column).value = identifier_ws.loc[df_row, identifier_column]
-
-    """ 
-    Убираем значение из итоговой строки в файле XBRL.
-    Колонка(4): 'Иное имущество - Количество в составе активов, штук'
-    """
-    ws.cell(ws.max_row, 4).value = ''
-
-
-# %%
-def corrector_Podpisant_3_(ws_xbrl, df_identifier, id_fond):
-    """ Проставляем реквизиты СпецДепа"""
-    # форма:
-    # 0420502 Справка о стоимости _57   SR_0420502_Podpisant_spec_dep
-
-    # Проставляем id Фонда и реквизиты СпецДепа в форму
-    ws_identifier = df_identifier['ПИФ']
-
-    # находим строку в df 'Идентификаторы' с реквизитами СД
-    requisites = ws_identifier[(ws_identifier[0] == id_fond)]
-    # переиндексируем df, начиная с '0'
-    requisites.index = range(0, len(requisites))
-
-    # вставляем реквизиты СД
-    # номера колонок в df 'Идентификаторы' начинается с "0", а ws_xbrl с "1"
-    for col in range(3, 6):
-        ws_xbrl.cell(8, col).value = str(requisites.loc[0, col])
-
 
 def corrector_Podpisant_3_v2(ws_xbrl, id_fond):
     # Загрузка файла
@@ -267,6 +215,22 @@ def corrector_00(ws, row: int = None, col: str = None):
             cell.value = value
 
 
+def corrector_00_v2(ws, *colls, row: int = 11):
+    """ Убираем лишние '.00' в конце строки,
+    которые могут появиться после копирования данных"""
+    # (например при копировании ИНН: "7705373131" => "7705373131.00" )
+    # row: int - начальная строка столбца с данными
+    # collls: str - колонка или колонки с данными
+
+    for col in colls:
+        for r in range(row, ws.max_row + 1):
+            cell = ws.cell(r, column_index_from_string(col))
+            value = cell.value
+            if value.endswith('.00'):  # в конце текста есть '.00'
+                value = value[:-3]
+                cell.value = value
+
+
 def copy_cells_one2one(ws, row_begin, col_to, col_from,
                        del_old_sell=False, id_fond=''):
     if id_fond:
@@ -315,11 +279,6 @@ def copy_bank_account(id_fond, wb_pif_info, ws, row_begin, col_to, col_from):
         else:
             red_error(cell_to)
 
-            # cell_to.value = "ошибка"
-            # # красный цвет
-            # color_font = colors.Color(rgb='FFFF0000')
-            # cell_to.font = Font(color=color_font)
-            # log.error(f'"{ws.title}"; строка:"{row_ws}" --> не указан счёт в кредитной организации')
 
 def make_id(txt: str, start=1, end=2) -> str:
     """Создание идентификатора из текста"""
@@ -457,6 +416,7 @@ def fio_initials(txt):
     txt_list = txt.split()
     return txt_list[0] + ' ' + txt_list[1][0].upper() + '.' + txt_list[2][0].upper() + '.'
 
+
 def copy_birzha_id(ws, row_begin, col_to, col_from):
     """Копирование идентификатора Биржи"""
 
@@ -469,11 +429,7 @@ def copy_birzha_id(ws, row_begin, col_to, col_from):
                 ws.cell(row, column_index_from_string(col_from)).value
 
 
-
 # %%
 
 if __name__ == "__main__":
     pass
-    txt = 'Договор купли-продажи объектов недвижимости № А-56 от 25.06.2020 г.'
-    # q = find_nomber(txt, n='№')
-    q = fio_initials(txt)

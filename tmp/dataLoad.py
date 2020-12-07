@@ -85,12 +85,12 @@ def load_data():
 
     # ---------------------------------------------------------
     # Загрузка файла с Идентификаторами
-    df_identifier = load_file(folder=dir_shablon,
-                              fileName=fileID,
-                              sheet_name=None,
-                              index_col=None,
-                              header=None)
-    file_id = dir_shablon + fileID
+    # df_identifier = load_file(folder=dir_shablon,
+    #                           fileName=fileID,
+    #                           sheet_name=None,
+    #                           index_col=None,
+    #                           header=None)
+    # file_id = dir_shablon + fileID
     # ---------------------------------------------------------
     # Выбор файла, созданного в Аванкор
     file_avancor, id_fond = openAvancore(df_identifier)
@@ -136,7 +136,7 @@ def idFromFileName(fileName):
     id_fond = '_'.join(id_fond[:2])
 
     # Список всех идентификаторой фондов
-    df_identifier = load_file(folder=dir_shablon, fileName=fileID)
+    # df_identifier = load_file(folder=dir_shablon, fileName=fileID)
     all_id_fond = df_identifier['ПИФ'][0][1:].to_list()
 
     # Если в названии файла нет идентификатора, то прерываем программу

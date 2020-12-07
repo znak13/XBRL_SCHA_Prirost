@@ -24,7 +24,7 @@ import module.dataCopy as dcop
 
 
 # **********************************************************************************
-def scha (wb, id_fond, df_identifier, df_avancor):
+def scha (wb, id_fond, df_avancor):
 
     # **********************************************************************************
     def copyFromAvancore(ws, AvancoreCellBegin, AvancoreCellEnd, AvancoreTblCols):
@@ -68,12 +68,16 @@ def scha (wb, id_fond, df_identifier, df_avancor):
         dcop.copy_id_fond_to_tbl(ws, id_fond)
         # ---------------------------------------------------------
         # Меняем местами значения ячеек и добавляем id фонда и УК
-        adj.corrector_scha_01(wb, df_identifier, id_fond, shortURL=shortURL)
+        adj.corrector_scha_01(wb, id_fond, shortURL=shortURL)
         # ---------------------------------------------------------
         # Корректируем реквизиты фонда: "№ лицензии", "ОКПО"
         ws.cell(10, 4).value = str(ws.cell(10, 4).value).split('.')[0]  # "№ лицензии"
         ws.cell(10, 5).value = str(ws.cell(10, 5).value).split('.')[0]  # "ОКПО"
 
+        # Убираем лишние '.00' в конце строки,
+        # которые могут появиться после копирования:
+        # "номер лицензии", "ОКПО"
+        adj.corrector_00_v2(ws, 'D', 'E', row=10)
 
     # **********************************************************************************
     def scha_02():
@@ -465,7 +469,7 @@ def scha (wb, id_fond, df_identifier, df_avancor):
         # ---------------------------------------------------------
         # Корректируем количество паев,
         # устанавливая нужную точностью знаков после запятой
-        adj.corrector_scha_13_(id_fond, ws, df_avancor, df_identifier)
+        adj.corrector_scha_13_(id_fond, ws, df_avancor)
         # ---------------------------------------------------------
         # Записываем в форму идентификатор фонда
         dcop.copy_id_fond_to_tbl(ws, id_fond)

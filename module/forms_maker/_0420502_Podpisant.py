@@ -3,57 +3,18 @@ import pandas as pd
 
 import module.functions as fun
 import module.adjustments as adj
-import module.dataCheck as dCheck
+# import module.dataCheck as dCheck
 
 from module.globals import *
+
 global log
+
+
 # Формы:
 # 0420502 Справка о стоимости _56	SR_0420502_Podpisant
 # 0420502 Справка о стоимости _57	SR_0420502_Podpisant_spec_dep
 
-# def urlForms():
-#     return ['SR_0420502_Podpisant',  # 0
-#             'SR_0420502_Podpisant_spec_dep']  # 1
-#
-#
-# def podpisant(wb, df_matrica, df_avancor, df_identifier, id_fond, ERRORS, errors_file):
-#     urlSheets = fun.codesSheets(wb)
-#     # ================================================================
-#     # Корректируем формы в зависимости от их особенностей:
-#     # ================================================================
-#     """0420502 Справка о стоимости _56	SR_0420502_Podpisant"""
-#     shortURL = urlForms()[0]
-#     sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)
-#     ws = wb[sheetName]
-#
-#     # Записываем ФИО подписантов
-#     adj.corrector_Podpisant_1_(ws, df_matrica, df_avancor, shortURL, ERRORS, errors_file)
-#
-#     # Заменяем на полное ФИО подписантов
-#     cell_with_fio = 'B7'
-#     adj.corrector_Podpisant_2_(ws, df_identifier, sheetName, cell_with_fio, ERRORS, errors_file)
-#
-#     # ================================================================
-#     """0420502 Справка о стоимости _57	SR_0420502_Podpisant_spec_dep"""
-#     shortURL = urlForms()[1]
-#     sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)
-#     ws = wb[sheetName]
-#
-#     # Записываем ФИО подписантов
-#     adj.corrector_Podpisant_1_(ws, df_matrica, df_avancor, shortURL, ERRORS, errors_file)
-#     # Заменяем на полное ФИО подписантов
-#     cell_with_fio = 'B8'
-#     adj.corrector_Podpisant_2_(ws, df_identifier, sheetName, cell_with_fio, ERRORS, errors_file)
-#     # Проставляем id-Фонда
-#     ws.cell(8, 1).value = id_fond
-#     # Проставляем реквизиты СпецДепа
-#     adj.corrector_Podpisant_3_(ws, df_identifier, id_fond)
-#
-#     # ================================================================
-
-
 def podpisant(wb, df_avancor, id_fond):
-
     # **********************************************************************************
     def fioShort(ws, AvancoreTitle, avancor_fio_col, cell_fio):
         """Копируем короткое-ФИО подписанта"""
@@ -122,15 +83,8 @@ def podpisant(wb, df_avancor, id_fond):
             if fio_full:
                 ws[cell_with_fio].value = fio_full
                 # print(fio_full)
+
         # --------------------------------------------------------------
-        # # Загружаем нужную страницу файла с Идентификаторами
-        # ws_fio = df_identifier['ФИО']
-        # # Выбираем в качестве заголовкой столбцов первую строку
-        # ws_fio.columns = ws_fio.iloc[0]
-        # # удаляем нулевую строку - она дублирует заголовки
-        # ws_fio = ws_fio.drop(ws_fio.index[[0]])
-        # # переиндексируем строки, начиная с "0"
-        # ws_fio.index -= 1
 
         ws_fio = pd.read_excel(dir_shablon + pif_info,
                                sheet_name=pif_info_sheet_fio,
@@ -188,7 +142,6 @@ def podpisant(wb, df_avancor, id_fond):
         # Проставляем реквизиты СпецДепа
         # adj.corrector_Podpisant_3_(ws, df_identifier, id_fond)
         adj.corrector_Podpisant_3_v2(ws, id_fond)
-
 
     # **********************************************************************************
     urlSheets = fun.codesSheets(wb)  # словарь - "код вкладки":"имя вкладки"

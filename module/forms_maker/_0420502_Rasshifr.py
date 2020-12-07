@@ -2,10 +2,11 @@
 
 # from module.functions import listSheetsName
 import module.functions as fun
+from module.data_load import load_pif_info
 import module.dataCopy as dcop
 import module.adjustments as adj
 from module.dataCheck import id_errors
-from openpyxl.utils import column_index_from_string  # 'B' -> 2
+# from openpyxl.utils import column_index_from_string  # 'B' -> 2
 from module.globals import *
 
 
@@ -62,8 +63,8 @@ def correct_RegNumberKO(ws, rowBegin, col):
         ws.cell(row, col).value = str(ws.cell(row, col).value).split('.')[0]
 
 
-def rashifr(wb, df_avancor, df_identifier, id_fond):
-    def copy_rashifr(ws, AvancoreTitle, copy_id=True):
+def rashifr(wb, df_avancor, id_fond):
+    def copy_rashifr(ws, AvancoreTitle):
         """ Копируем данные форм-расшифровок"""
 
         # номер первой и последней строки с данными в таблице Аванкор
@@ -93,11 +94,6 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # Копирование данных из таблицы Аванков в таблицу XBRL
             dcop.copy_data(ws, df_avancor, rows_numbers, columns_numbers, row_begin, col_begin)
 
-            if copy_id:
-                # Копирование идентификаторов
-                # Находим и вставляем идентификаторы в ячейки
-                dcop.insert_id(ws, id_row, id_cols, df_identifier, rows_numbers, row_begin, col_begin, id_fond)
-
             return True
 
         else:
@@ -106,44 +102,6 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # wb.remove(ws)
             return False
 
-    # **********************************************************************************
-    def rashifr_14():
-        """0420502 Справка о стоимости _14	SR_0420502_Rasshifr_Akt_P1_P1"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P1_P1'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'J11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '1.1. Денежные средства на счетах в кредитных организациях'
-
-        if copy_rashifr(ws, AvancoreTitle):
-            # ---------------------------------------------------------
-            # Корректируем номер кредитной организации
-            # (поле:"Регистрационный номер кредитной организации")
-            # начиная с 11 строки
-            # for row in range(11, ws.max_row):
-            #     ws.cell(row, 6).value = str(ws.cell(row, 6).value).split('.')[0]
-            correct_RegNumberKO(ws, 11, 6)
-            # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
-
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
     # **********************************************************************************
     def rashifr_14_v2():
         """0420502 Справка о стоимости _14	SR_0420502_Rasshifr_Akt_P1_P1"""
@@ -161,7 +119,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '1.1. Денежные средства на счетах в кредитных организациях'
 
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Корректируем номер кредитной организации
             # (поле:"Регистрационный номер кредитной организации")
@@ -177,7 +135,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             fun.cellFormat(ws, cellFormat, cols=cellFormatN)
             # ---------------------------------------------------------
             # Столбцы с Идентификаторами
-            col_id = ['B','C']
+            col_id = ['B', 'C']
             # Номер первой строки с данными
             row_begin = 11
             # ---------------------------------------------------------
@@ -194,47 +152,12 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
-
-
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_15():
-        """0420502 Справка о стоимости _15	SR_0420502_Rasshifr_Akt_P1_P2"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P1_P2'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'K11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '1.2. Денежные средства на счетах по депозиту в кредитных организациях'
-
-        # При наличии депозитов в файле-Аванкор нужно указывать номер счета депозита
-        adj.depozitID(df_avancor, AvancoreTitle)
-
-        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
-            # Корректируем номер кредитной организации
-            # (поле:"Регистрационный номер кредитной организации")
-            # начиная с 11 строки, колонка 6
-            # for row in range(11, ws.max_row):
-            #     ws.cell(row, 6).value = str(ws.cell(row, 6).value).split('.')[0]
-            correct_RegNumberKO(ws, 11, 6)
-            # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования ОГРН, ИНН
+            adj.corrector_00_v2(ws, 'E')
+
+
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -260,7 +183,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # При наличии депозитов в файле-Аванкор нужно указывать номер счета депозита
         adj.depozitID(df_avancor, AvancoreTitle)
 
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Корректируем номер кредитной организации
             # (поле:"Регистрационный номер кредитной организации")
@@ -293,7 +216,11 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             adj.copy_cells_one2one(ws, row_begin, col_id[1], col_from)
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
-            id_errors(ws, col_id, row_begin= row_begin )
+            id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования ОГРН, Рег.номер
+            adj.corrector_00_v2(ws, 'E','F')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -316,7 +243,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '2.1. Облигации российских хозяйственных обществ'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -340,6 +267,10 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования ОГРН, Рег.номер
+            adj.corrector_00_v2(ws, 'E', 'F')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -362,7 +293,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '2.10. Ипотечные сертификаты участия'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -387,6 +318,10 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'E', 'G', 'H')
 
 
         else:
@@ -410,7 +345,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '2.11. Иные ценные бумаги российских эмитентов (за исключением закладных)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -430,6 +365,10 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'E', 'F')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -452,7 +391,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '2.2. Государственные ценные бумаги Российской Федерации'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -476,6 +415,10 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'E', 'F')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -498,7 +441,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '2.3. Государственные ценные бумаги субъектов Российской Федерации'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -522,6 +465,10 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'F', 'G')
 
 
         else:
@@ -545,7 +492,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '2.4. Муниципальные ценные бумаги'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -569,6 +516,10 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'F', 'G')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -591,7 +542,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '2.5. Российские депозитарные расписки'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -614,11 +565,15 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             adj.copy_birzha_id(ws, row_begin, col_id[1], col_from)
             # ---------------------------------------------------------
             # Вставляем "Идентификатор российской депозитарной расписки"
-            col_from = 'M' # 'TIN'
+            col_from = 'M'  # 'TIN'
             adj.copy_cells_one2one(ws, row_begin, col_id[0], col_from)
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'F', 'G')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -641,7 +596,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '2.6. Инвестиционные паи паевых инвестиционных фондов'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -671,35 +626,11 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
-
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_24():
-        """0420502 Справка о стоимости _24	SR_0420502_Rasshifr_Akt_P2_7"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P2_7'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'L11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '2.7. Акции российских акционерных обществ'
-        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'H', 'I')
+
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -721,7 +652,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '2.7. Акции российских акционерных обществ'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -745,6 +676,11 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования ОГРН, ИНН
+            adj.corrector_00_v2(ws, 'E', 'F')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -767,7 +703,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '2.8. Векселя российских хозяйственных обществ'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -789,6 +725,10 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'D', 'E')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -811,7 +751,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '2.9. Облигации с ипотечным покрытием'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -835,6 +775,10 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'E', 'F')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -857,7 +801,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '3.1. Облигации иностранных коммерческих организаций'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -903,7 +847,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '3.3. Облигации международных финансовых организаций'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -949,7 +893,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '3.4. Иностранные депозитарные расписки'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -972,7 +916,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             adj.copy_birzha_id(ws, row_begin, col_id[1], col_from)
             # ---------------------------------------------------------
             # Вставляем "Идентификатор иностранной депозитарной расписки"
-            col_from = 'G' # колонка - 'TIN'
+            col_from = 'G'  # колонка - 'TIN'
             adj.copy_cells_one2one(ws, row_begin, col_id[0], col_from)
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
@@ -999,7 +943,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '3.5. Паи (акции) иностранных инвестиционных фондов'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1014,7 +958,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             row_begin = 11
             # ---------------------------------------------------------
             # Вставляем 'Идентификатор выпуска ценной бумаги'
-            col_from = 'F' # колонка - "TIN"
+            col_from = 'F'  # колонка - "TIN"
             adj.copy_cells_one2one(ws, row_begin, col_id[0], col_from)
             # ---------------------------------------------------------
             # Вставляем 'Bдентификатор биржи'
@@ -1045,7 +989,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '3.6. Акции иностранных акционерных обществ'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1091,7 +1035,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '3.7. Иные ценные бумаги иностранных эмитентов'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1119,32 +1063,32 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             wb.remove(ws)
 
     # **********************************************************************************
-    def rashifr_33():
-        """0420502 Справка о стоимости _33	SR_0420502_Rasshifr_Akt_P4_1"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P4_1'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'H11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '4.1. Недвижимое имущество'
-        if copy_rashifr(ws, AvancoreTitle):
-            # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
+    # def rashifr_33():
+    #     """0420502 Справка о стоимости _33	SR_0420502_Rasshifr_Akt_P4_1"""
+    #
+    #     shortURL = 'SR_0420502_Rasshifr_Akt_P4_1'  # код вкладки
+    #     sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
+    #     ws = wb[sheetName]
+    #     # ячейки для форматирования
+    #     cellFormat = 'H11'
+    #     cellFormatN = 2
+    #
+    #     print(f'{sheetName} - {shortURL}')
+    #     # ---------------------------------------------------------
+    #     # Переносим данные в форму:
+    #     # Заголовки формы в файле-Аванкор
+    #     AvancoreTitle = '4.1. Недвижимое имущество'
+    #     if copy_rashifr(ws, AvancoreTitle):
+    #         # ---------------------------------------------------------
+    #         # Записываем в форму идентификатор фонда
+    #         dcop.copy_id_fond_to_tbl(ws, id_fond)
+    #         # ---------------------------------------------------------
+    #         # Форматируем ячейки
+    #         fun.cellFormat(ws, cellFormat, cols=cellFormatN)
+    #     else:
+    #         # Если ничего скопировано не было, то Раздел пуст.
+    #         # Удаляем вкладку
+    #         wb.remove(ws)
 
     # **********************************************************************************
     def rashifr_33_v2():
@@ -1162,7 +1106,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '4.1. Недвижимое имущество'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1188,35 +1132,6 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             wb.remove(ws)
 
     # **********************************************************************************
-    def rashifr_34():
-        """0420502 Справка о стоимости _34	SR_0420502_Rasshifr_Akt_P4_2_1"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P4_2_1'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'K11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '4.2.1. Право аренды недвижимого имущества (арендодатель – физическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle):
-            # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
-
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
     def rashifr_34_v2():
         """0420502 Справка о стоимости _34	SR_0420502_Rasshifr_Akt_P4_2_1"""
 
@@ -1232,7 +1147,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '4.2.1. Право аренды недвижимого имущества (арендодатель – физическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1258,34 +1173,6 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             wb.remove(ws)
 
     # **********************************************************************************
-    def rashifr_35():
-        """0420502 Справка о стоимости _35	SR_0420502_Rasshifr_Akt_P4_2_2"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P4_2_2'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'L11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '4.2.2. Право аренды недвижимого имущества (арендодатель – юридическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle):
-            # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
     def rashifr_35_v2():
         """0420502 Справка о стоимости _35	SR_0420502_Rasshifr_Akt_P4_2_2"""
 
@@ -1301,7 +1188,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '4.2.2. Право аренды недвижимого имущества (арендодатель – юридическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1320,35 +1207,11 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
-
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_36():
-        """0420502 Справка о стоимости _36	SR_0420502_Rasshifr_Akt_P5_1"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P5_1'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'K11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '5.1. Имущественные права из договоров участия в долевом строительстве объектов недвижимого имущества'
-        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'D')
+
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -1370,7 +1233,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '5.1. Имущественные права из договоров участия в долевом строительстве объектов недвижимого имущества'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1390,42 +1253,11 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_37():
-        """0420502 Справка о стоимости _37	SR_0420502_Rasshifr_Akt_P5_2"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P5_2'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'K11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '5.2. Имущественные права, связанные с возникновением права собственности ' \
-                        'на объект недвижимости (его часть) после завершения его строительства (создание) ' \
-                        'и возникающие из договора, стороной по которому является юридическое лицо, ' \
-                        'которому принадлежит право собственности или иное вещное право, ' \
-                        'включая право аренды, на земельный участок, выделенный в установленном порядке ' \
-                        'для целей строительства объекта недвижимости, и (или) имеющее разрешение ' \
-                        'на строительство объекта недвижимости на указанном земельном участке, ' \
-                        'либо юридическое лицо, инвестирующее денежные средства ' \
-                        'или иное имущество в строительство объекта недвижимости'
-        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'G')
+
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -1455,7 +1287,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
                         'на строительство объекта недвижимости на указанном земельном участке, ' \
                         'либо юридическое лицо, инвестирующее денежные средства ' \
                         'или иное имущество в строительство объекта недвижимости'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1475,42 +1307,11 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
-
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_38():
-        """0420502 Справка о стоимости _38	SR_0420502_Rasshifr_Akt_P5_3"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P5_3'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'K11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '5.3. Имущественные права из договоров, на основании ' \
-                        'которых осуществляется строительство (создание) объектов ' \
-                        'недвижимого имущества (в том числе на месте объектов ' \
-                        'недвижимости) на выделенном в установленном порядке ' \
-                        'для целей строительства (создания) указанного объекта ' \
-                        'недвижимости земельном участке, который (право аренды которого) ' \
-                        'составляет активы акционерного инвестиционного фонда ' \
-                        '(паевого инвестиционного фонда)'
-        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'G')
+
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -1539,7 +1340,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
                         'недвижимости земельном участке, который (право аренды которого) ' \
                         'составляет активы акционерного инвестиционного фонда ' \
                         '(паевого инвестиционного фонда)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1559,6 +1360,11 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'G')
+
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -1583,7 +1389,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
                         'которых осуществляется реконструкция объектов недвижимости, ' \
                         'составляющих активы акционерного инвестиционного фонда ' \
                         '(паевого инвестиционного фонда)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1604,6 +1410,10 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'G')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -1626,7 +1436,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '5.5. Иные имущественные права'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1655,34 +1465,6 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             wb.remove(ws)
 
     # **********************************************************************************
-    def rashifr_41():
-        """0420502 Справка о стоимости _41	SR_0420502_Rasshifr_Akt_P6_1_1"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P6_1_1'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'L11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '6.1.1. Денежные требования по кредитным договорам и договорам займа (должник – физическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle):
-            # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
     def rashifr_41_v2():
         """0420502 Справка о стоимости _41	SR_0420502_Rasshifr_Akt_P6_1_1"""
 
@@ -1698,7 +1480,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '6.1.1. Денежные требования по кредитным договорам и договорам займа (должник – физическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1708,7 +1490,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
 
             # ---------------------------------------------------------
             # Столбцы с Идентификаторами
-            col_id = ['B','C']
+            col_id = ['B', 'C']
             # Номер первой строки с данными
             row_begin = 11
             # ---------------------------------------------------------
@@ -1716,7 +1498,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             col_from = 'J'
             col_fio = 'I'
             adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[0], col_from,
-                                   word_start=3, word_end=5,fio=col_fio)
+                                   word_start=3, word_end=5, fio=col_fio)
             # ---------------------------------------------------------
             # Вставляем Идентификатор денежного требования
             col_from = 'D'
@@ -1726,34 +1508,6 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
 
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_42():
-        """0420502 Справка о стоимости _42	SR_0420502_Rasshifr_Akt_P6_1_2"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P6_1_2'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'N11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '6.1.2. Денежные требования по кредитным договорам и договорам займа (должник – юридическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle):
-            # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -1775,7 +1529,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '6.1.2. Денежные требования по кредитным договорам и договорам займа (должник – юридическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1785,7 +1539,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
 
             # ---------------------------------------------------------
             # Столбцы с Идентификаторами
-            col_id = ['B','C']
+            col_id = ['B', 'C']
             # Номер первой строки с данными
             row_begin = 11
             # ---------------------------------------------------------
@@ -1801,6 +1555,10 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования ОГРН, ИНН
+            adj.corrector_00_v2(ws, 'K', 'L')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -1823,7 +1581,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '6.2.1. Закладные (должник – физическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1872,7 +1630,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '6.2.2. Закладные (должник – юридическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1898,35 +1656,11 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
-
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_45():
-        """0420502 Справка о стоимости _45	SR_0420502_Rasshifr_Akt_P7_1"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P7_1'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'H11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '7.1. Доли в уставных капиталах российских обществ с ограниченной ответственностью'
-        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'K', 'L')
+
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -1948,7 +1682,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '7.1. Доли в уставных капиталах российских обществ с ограниченной ответственностью'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -1967,35 +1701,11 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
-
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_46():
-        """0420502 Справка о стоимости _46	SR_0420502_Rasshifr_Akt_P7_2"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P7_2'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'H11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '7.2. Права участия в уставных капиталах иностранных коммерческих организаций'
-        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'D', 'E')
+
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -2017,7 +1727,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '7.2. Права участия в уставных капиталах иностранных коммерческих организаций'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -2042,8 +1752,6 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # Удаляем вкладку
             wb.remove(ws)
 
-
-
     # **********************************************************************************
     def rashifr_47_v2():
         """0420502 Справка о стоимости _47	SR_0420502_Rasshifr_Akt_P7_3"""
@@ -2060,7 +1768,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '7.3. Проектная документация для строительства или реконструкции объекта недвижимости'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -2104,7 +1812,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = 'Подраздел 7.4. Драгоценные металлы'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -2148,7 +1856,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '7.5. Требования к кредитной организации выплатить денежный эквивалент драгоценных металлов по текущему курсу'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -2170,6 +1878,10 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'F')
 
 
         else:
@@ -2193,7 +1905,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '7.6. Художественные ценности'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -2221,7 +1933,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             wb.remove(ws)
 
     # **********************************************************************************
-    def rashifr_51():
+    def rashifr_51_v2():
         """0420502 Справка о стоимости _51	SR_0420502_Rasshifr_Akt_P7_7"""
 
         shortURL = 'SR_0420502_Rasshifr_Akt_P7_7'  # код вкладки
@@ -2239,38 +1951,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Добавляем подробное описание имущества
-            adj.corrector_scha_51_(ws, df_identifier)
-            # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_51_v2():
-        """0420502 Справка о стоимости _51	SR_0420502_Rasshifr_Akt_P7_7"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P7_7'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'E11'
-        cellFormatN = 2
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '7.7. Иное имущество, не указанное в таблицах пунктов 7.1 - 7.6'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
-            # ---------------------------------------------------------
-            # Добавляем подробное описание имущества
-            adj.corrector_scha_51_(ws, df_identifier)
+            # adj.corrector_scha_51_(ws, df_identifier)
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -2299,7 +1980,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             wb.remove(ws)
 
     # **********************************************************************************
-    def rashifr_52():
+    def rashifr_52_v2():
         """0420502 Справка о стоимости _52	SR_0420502_Rasshifr_Akt_P8_1"""
 
         shortURL = 'SR_0420502_Rasshifr_Akt_P8_1'  # код вкладки
@@ -2321,37 +2002,9 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Форматируем ячейки
             fun.cellFormat(ws, cellFormat, cols=cellFormatN)
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_52_v2():
-        """0420502 Справка о стоимости _52	SR_0420502_Rasshifr_Akt_P8_1"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P8_1'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'K11'
-        cellFormatN = 3
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '8.1. Дебиторская задолженность (должник – физическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
-            # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
             # ---------------------------------------------------------
             # Столбцы с Идентификаторами
-            col_id = ['B','C']
+            col_id = ['B', 'C']
             # Номер первой строки с данными
             row_begin = 11
             # ---------------------------------------------------------
@@ -2376,44 +2029,6 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             wb.remove(ws)
 
     # **********************************************************************************
-    def rashifr_53():
-        """0420502 Справка о стоимости _53	SR_0420502_Rasshifr_Akt_P8_2"""
-
-        shortURL = 'SR_0420502_Rasshifr_Akt_P8_2'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'M11'
-        cellFormatN = 3
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = '8.2. Дебиторская задолженность (должник – юридическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle):
-            # ---------------------------------------------------------
-            # Корректируем ИНН
-            # начиная с 11 строки, колонка 9 (I=9)
-            for row in range(11, ws.max_row):
-                ws.cell(row, 9).value = str(ws.cell(row, 9).value).split('.')[0]
-            # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Убираем лишние '.00' в конце строки,
-            # которые могут появиться после копирования ИНН
-            adj.corrector_00(ws, row=11, col='I')
-            adj.corrector_00(ws, row=11, col='J')
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
     def rashifr_53_v2():
         """0420502 Справка о стоимости _53	SR_0420502_Rasshifr_Akt_P8_2"""
 
@@ -2429,7 +2044,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '8.2. Дебиторская задолженность (должник – юридическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Корректируем ИНН
             # начиная с 11 строки, колонка 9 (I=9)
@@ -2460,35 +2075,11 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             col_from = 'F'
             adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id, col_from,
                                    delta=True, dogovor_n=True, fond_name=True)
-
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_54():
-        """0420502 Справка о стоимости _54	SR_0420502_Rasshifr_Ob_P1"""
-
-        shortURL = 'SR_0420502_Rasshifr_Ob_P1'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'J11'
-        cellFormatN = 3
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = 'Подраздел 1. Кредиторская задолженность (кредитор – физическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования...
+            adj.corrector_00_v2(ws, 'I', 'J')
+
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -2510,7 +2101,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = 'Подраздел 1. Кредиторская задолженность (кредитор – физическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -2519,7 +2110,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             fun.cellFormat(ws, cellFormat, cols=cellFormatN)
             # ---------------------------------------------------------
             # Столбцы с Идентификаторами
-            col_id = ['B','C']
+            col_id = ['B', 'C']
             # Номер первой строки с данными
             row_begin = 11
             # ---------------------------------------------------------
@@ -2543,7 +2134,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             wb.remove(ws)
 
     # **********************************************************************************
-    def rashifr_55():
+    def rashifr_55_v2():
         """0420502 Справка о стоимости _55	SR_0420502_Rasshifr_Ob_P2"""
 
         shortURL = 'SR_0420502_Rasshifr_Ob_P2'  # код вкладки
@@ -2565,34 +2156,6 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             # ---------------------------------------------------------
             # Форматируем ячейки
             fun.cellFormat(ws, cellFormat, cols=cellFormatN)
-        else:
-            # Если ничего скопировано не было, то Раздел пуст.
-            # Удаляем вкладку
-            wb.remove(ws)
-
-    # **********************************************************************************
-    def rashifr_55_v2():
-        """0420502 Справка о стоимости _55	SR_0420502_Rasshifr_Ob_P2"""
-
-        shortURL = 'SR_0420502_Rasshifr_Ob_P2'  # код вкладки
-        sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
-        ws = wb[sheetName]
-        # ячейки для форматирования
-        cellFormat = 'M11'
-        cellFormatN = 3
-
-        print(f'{sheetName} - {shortURL}')
-        # ---------------------------------------------------------
-        # Переносим данные в форму:
-        # Заголовки формы в файле-Аванкор
-        AvancoreTitle = 'Подраздел 2. Кредиторская задолженность (кредитор – юридическое лицо)'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
-            # ---------------------------------------------------------
-            # Записываем в форму идентификатор фонда
-            dcop.copy_id_fond_to_tbl(ws, id_fond)
-            # ---------------------------------------------------------
-            # Форматируем ячейки
-            fun.cellFormat(ws, cellFormat, cols=cellFormatN)
             # ---------------------------------------------------------
             # Столбцы с Идентификаторами
             col_id = ['B', 'C']
@@ -2608,8 +2171,14 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
                                    word_end=1,
                                    delta=True, dogovor_n=True, fond_name=True)
-            # Проверяем заполнены ли все идентивикаторы
+            # Проверяем заполнены ли все идентификаторы
             id_errors(ws, col_id, row_begin=row_begin)
+
+            # Убираем лишние '.00' в конце строки,
+            # которые могут появиться после копирования ОГРН, ИНН
+            adj.corrector_00_v2(ws, 'I', 'J')
+            # adj.corrector_00(ws, row=11, col='I')
+            # adj.corrector_00(ws, row=11, col='J')
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -2632,7 +2201,7 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
         # Переносим данные в форму:
         # Заголовки формы в файле-Аванкор
         AvancoreTitle = '3.2. Облигации иностранных государств'
-        if copy_rashifr(ws, AvancoreTitle, copy_id=False):
+        if copy_rashifr(ws, AvancoreTitle):
             # ---------------------------------------------------------
             # Записываем в форму идентификатор фонда
             dcop.copy_id_fond_to_tbl(ws, id_fond)
@@ -2663,8 +2232,8 @@ def rashifr(wb, df_avancor, df_identifier, id_fond):
             wb.remove(ws)
 
     # **********************************************************************************
-    wb_pif_info = fun.load_pif_info(file_name=pif_info,
-                                    path_2file=dir_shablon)
+    wb_pif_info = load_pif_info(file_name=pif_info,
+                                path_2file=dir_shablon)
 
     urlSheets = fun.codesSheets(wb)  # словарь - "код вкладки":"имя вкладки"
     # Кол-во строк и столбцов в файле Аванкор

@@ -68,32 +68,6 @@ def analiz_data_number_point(cell):
         return False
     return False
 
-
-# Предыдущий вариант функции:
-#
-# def analiz_data_number_point(cell):
-#     """ Конвертер десятичной части: меняем ',' на '.' """
-#     # type (cell) == str
-#
-#     if type(cell) == str:
-#         cell = cell.replace(' ', '')
-#         # если в тексте разделяется знаком"," на две части
-#         # если из первой части убрать один знак"-" (если "-" есть) и останутся одни цифры и
-#         # если вторая часть - это одни цифры
-#         if len(cell.split(',')) == 2 and \
-#                 cell.split(',')[0].replace('-', '', 1).isdigit() and \
-#                 cell.split(',')[1].isdigit():
-#             part1 = cell.split(',')[0]
-#             part2 = cell.split(',')[1]
-#
-#             if len(part2) == 1:  # если указан только один знак после запятой
-#                 part2 = part2 + '0'
-#             cell = part1 + '.' + part2
-#
-#             return cell.replace(' ', '')  # удаляем пробелы
-#     return False
-
-
 # ==================================================================================
 def analiz_data_number_00(cell):
     """ Конвертер десятичной части
@@ -139,15 +113,4 @@ def analiz_data_all(cell):
 # ==================================================================================
 
 if __name__ == "__main__":
-    # print (analiz_data_all ('23 551 234') )
-
-    # print ( analiz_data_number_point ('14534,56' ) )
-
-    # q = analiz_data_all(23.866)
-    # qq = str(q).split('.')[0]
-
-    # from datetime import datetime, date, time
-    # df_avancor.loc[349, 4].strftime("%Y-%m-%d")
-    # dt.strftime("%A, %d. %B %Y %I:%M%p")
-
     pass
