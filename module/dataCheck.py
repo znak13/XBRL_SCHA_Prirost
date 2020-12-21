@@ -59,7 +59,10 @@ def empty_cell(ws, cellBegin, cellEnd):
     for row in range(rowBegin, rowBegin + (rowEnd - rowBegin) + 1):
         for col in range(colBegin, colBegin + (colEnd - colBegin) + 1):
             cellData = ws.cell(row, col).value
-            if not cellData:
+            if not cellData or \
+                    str(cellData).startswith('Не установлен') or \
+                    cellData == 'None':
+                red_error(ws.cell(row, col))
                 log.error(f'"{ws.title}" --> пустая ячейка "{get_column_letter(col) + str(row)}"')
 
 def red_error(cell):

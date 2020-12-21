@@ -226,9 +226,10 @@ def corrector_00_v2(ws, *colls, row: int = 11):
         for r in range(row, ws.max_row + 1):
             cell = ws.cell(r, column_index_from_string(col))
             value = cell.value
-            if value.endswith('.00'):  # в конце текста есть '.00'
-                value = value[:-3]
-                cell.value = value
+            if value: # если ячейка не пустая
+                if value.endswith('.00'):  # в конце текста есть '.00'
+                    value = value[:-3]
+                    cell.value = value
 
 
 def copy_cells_one2one(ws, row_begin, col_to, col_from,
@@ -237,8 +238,9 @@ def copy_cells_one2one(ws, row_begin, col_to, col_from,
         id_fond = '_(' + id_fond + ')'
 
     for row in range(row_begin, ws.max_row):
+
         ws.cell(row, column_index_from_string(col_to)).value = \
-            ws.cell(row, column_index_from_string(col_from)).value + id_fond
+            str(ws.cell(row, column_index_from_string(col_from)).value) + id_fond
 
         if del_old_sell:  # стираем значение в ячейке, изх которой копировали
             ws.cell(row, column_index_from_string(col_from)).value = ""

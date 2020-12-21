@@ -6,8 +6,10 @@ from module.data_load import load_pif_info
 import module.dataCopy as dcop
 import module.adjustments as adj
 from module.dataCheck import id_errors
-# from openpyxl.utils import column_index_from_string  # 'B' -> 2
+from openpyxl.utils import column_index_from_string  # 'B' -> 2
+from openpyxl.utils.cell import get_column_letter  # 3 -> 'C'
 from module.globals import *
+from module.dataCheck import empty_cell
 
 
 # Выбираем формы: расшифровки разделов
@@ -1126,6 +1128,14 @@ def rashifr(wb, df_avancor, id_fond):
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
 
+            # ---------------------------------------------------------
+            # проверяем все ли ячейки заполнены
+            cellBegin = col_id[0] + str(row_begin)
+            row_end = ws.max_row - 1
+            col_end = get_column_letter(ws.max_column - 1)
+            cellEnd = col_end + str(row_end)
+            empty_cell(ws, cellBegin, cellEnd)
+
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -1973,6 +1983,19 @@ def rashifr(wb, df_avancor, id_fond):
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
+            # ---------------------------------------------------------
+            # Удаляем лишние данные из последней строки в столбце "D"
+            ws.cell( ws.max_row, column_index_from_string("D")).value = None
+
+            # ---------------------------------------------------------
+            # Проставляем нули в первой и последних строках таблицы
+            # 0420502 Справка о стоимости ч_9	SR_0420502_R3_P7
+            shortURL = 'SR_0420502_R3_P7'  # код вкладки
+            sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
+            ws = wb[sheetName]
+            cellBegin = 'C10'
+            fun.cell_00(ws, cellBegin)
+
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.
@@ -2080,6 +2103,14 @@ def rashifr(wb, df_avancor, id_fond):
             # которые могут появиться после копирования...
             adj.corrector_00_v2(ws, 'I', 'J')
 
+            # ---------------------------------------------------------
+            # проверяем все ли ячейки заполнены
+            cellBegin = 'B11'
+            row_end = ws.max_row - 1
+            col_end = get_column_letter(ws.max_column - 1)
+            cellEnd = col_end + str(row_end)
+            empty_cell(ws, cellBegin, cellEnd)
+
         else:
             # Если ничего скопировано не было, то Раздел пуст.
             # Удаляем вкладку
@@ -2173,12 +2204,20 @@ def rashifr(wb, df_avancor, id_fond):
                                    delta=True, dogovor_n=True, fond_name=True)
             # Проверяем заполнены ли все идентификаторы
             id_errors(ws, col_id, row_begin=row_begin)
-
+            # ---------------------------------------------------------
             # Убираем лишние '.00' в конце строки,
             # которые могут появиться после копирования ОГРН, ИНН
             adj.corrector_00_v2(ws, 'I', 'J')
             # adj.corrector_00(ws, row=11, col='I')
             # adj.corrector_00(ws, row=11, col='J')
+
+            # ---------------------------------------------------------
+            # проверяем все ли ячейки заполнены
+            cellBegin = col_id[0] + str(row_begin)
+            row_end = ws.max_row - 1
+            col_end = get_column_letter(ws.max_column - 1)
+            cellEnd = col_end + str(row_end)
+            empty_cell(ws, cellBegin, cellEnd)
 
         else:
             # Если ничего скопировано не было, то Раздел пуст.

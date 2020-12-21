@@ -94,7 +94,17 @@ def start_data_row(df_avancor, index_max, title_row, title_col=2):
     for row in range(1, index_max):
         data_i = df_avancor.loc[title_row + row, title_col]
         if str(data_i) == '1':
-            data_row = title_row + row + 1
+
+            # Форма Пояснительной Записки
+            # "Информация о требованиях и обязательствах по опционным и
+            # (или) фьючерсным договорам (контрактам)"
+            # отличается от других
+            next_cell = df_avancor.loc[title_row + row + 1, title_col]
+            if str(next_cell).startswith('Оценочная'):
+                data_row = title_row + row + 2
+            else:
+                data_row = title_row + row + 1
+
             return data_row
 
 
@@ -195,6 +205,18 @@ def cellFormat(ws, cell, cols: int = None):
         for col in range(col1, colEnd):
             ws.cell(row, col).alignment = Alignment(horizontal='right')
 
+def cell_00(ws, cell):
+    """Если нет данных, то проставляем нули в первой и последних строках таблицы"""
+    # cell - верхняя-левая ячейка
+
+    col1, row1 = coordinate_from_string(cell)
+    col1 = column_index_from_string(col1)
+
+    for row in [row1, ws.max_row]:
+        for col in range(col1, ws.max_column + 1):
+            cell_value = ws.cell(row, col).value
+            if cell_value == None:
+                ws.cell(row, col).value = '0.00'
 
 # %%
 def pathToFile(up=1, folder=None):
