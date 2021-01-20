@@ -253,7 +253,7 @@ def copy_bank_account(id_fond, wb_pif_info, ws, row_begin, col_to, col_from):
     # from openpyxl.styles import Font
 
     sheet_name = id_fond
-    title = 'тип счета'
+    # title = 'тип счета'
     ws_pif_info = wb_pif_info[sheet_name]
     col_pif = 'B'
 
@@ -414,7 +414,7 @@ def find_nomber(txt, n='№'):
 
 
 def fio_initials(txt):
-    """ Фамиоие и инициалы физ.лица"""
+    """ Фамилие и инициалы физ.лица"""
     txt_list = txt.split()
     return txt_list[0] + ' ' + txt_list[1][0].upper() + '.' + txt_list[2][0].upper() + '.'
 
@@ -429,6 +429,23 @@ def copy_birzha_id(ws, row_begin, col_to, col_from):
         else:
             ws.cell(row, column_index_from_string(col_to)).value = \
                 ws.cell(row, column_index_from_string(col_from)).value
+
+
+def corrector_depozit_type(ws, col ='I', row = 11):
+    """ Добавляем пробел ' ' после 'Да' или 'Нет' """
+
+    # 0420502 Справка о стоимости чистых активов,
+    # в том числе стоимости активов (имущества),
+    # акционерного инвестиционного фонда (паевого инвестиционного фонда)
+    # Расшифровки раздела 3 «Активы». Подраздел 1.2.
+    # Денежные средства на счетах по депозиту в кредитных организациях
+
+    # 0420502 Справка о стоимости _15
+
+    for r in range(row, ws.max_row):
+        cell = ws.cell(r, column_index_from_string(col))
+        if not cell.value.endswith(' '):  # в конце текста нет пробела
+            cell.value = cell.value + ' '
 
 
 # %%

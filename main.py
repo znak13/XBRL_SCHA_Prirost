@@ -33,7 +33,7 @@ def main():
         # ----------------------------------------------------------
         # Включаем логировние
         log = logger.create_log(path=file_set.dir_name + '/',
-                                file_log=file_set.fondID   + '_' + file_set.file_new_name + log_endName_scha,
+                                file_log=file_set.fondID + '_' + file_set.file_new_name + log_endName_scha,
                                 file_debug=file_set.fondID + '_' + file_set.file_new_name + debug_endName_scha)
         # устанавливаем 'log' как глобальную переменную (включая модули)
         builtins.log = log
@@ -54,7 +54,6 @@ def main():
 
                 file_set.file_new_name = file_set.fondID + '_' + \
                                          file_set.file_new_name
-
 
                 if (key['s'] and key['p'] and key['n'] and not key['x']):
                     choice = True  # выбор сделан

@@ -2,7 +2,7 @@
 # from openpyxl.styles import Font
 
 from module.dataCheck import check_errors
-from module.dataCheck import red_error
+# from module.dataCheck import red_error
 from module.analiz_data import analiz_data_all
 # from module.functions import coordinate, find_columns_numbers, \
 #     razdel_name_row, start_data_row, end_data_row

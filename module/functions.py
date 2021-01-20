@@ -7,6 +7,7 @@ from openpyxl.utils import column_index_from_string  # 'B' -> 2
 # from openpyxl.utils.cell import coordinate_to_tuple  # 'D2' -> (2,4)
 from openpyxl.styles import Alignment
 from module.globals import *
+from module.dataCheck import txt_compare
 global log
 # from module.data_load import load_pif_info
 
@@ -76,7 +77,12 @@ def razdel_name_row(df_avancor, title_1_name, index_max, title_col=2):
 
     for row in range(1, index_max):
         title = str(df_avancor.loc[row, title_col])
-        if title == title_1_name or title[:20] == title_1_name[:20]:
+
+        # сравниваем названия заголовкой форм (полностью или первые 20 символов)
+        # (при сравнениении исключаем пробелы)
+        if txt_compare(title, title_1_name) or txt_compare(title[:20], title_1_name[:20]):
+        # if title == title_1_name or title[:20] == title_1_name[:20]:
+
             title_row = row
             return title_row
 
