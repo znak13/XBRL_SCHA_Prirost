@@ -10,6 +10,7 @@ from module.functions import pai_search
 from module.analiz_data import analiz_data_data, toFixed
 from module.dataCheck import red_error
 from module.globals import *
+
 # from module.data_load import load_pif_info
 
 global log
@@ -226,7 +227,7 @@ def corrector_00_v2(ws, *colls, row: int = 11):
         for r in range(row, ws.max_row + 1):
             cell = ws.cell(r, column_index_from_string(col))
             value = cell.value
-            if value: # если ячейка не пустая
+            if value:  # если ячейка не пустая
                 if value.endswith('.00'):  # в конце текста есть '.00'
                     value = value[:-3]
                     cell.value = value
@@ -242,7 +243,7 @@ def copy_cells_one2one(ws, row_begin, col_to, col_from,
         ws.cell(row, column_index_from_string(col_to)).value = \
             str(ws.cell(row, column_index_from_string(col_from)).value) + id_fond
 
-        if del_old_sell:  # стираем значение в ячейке, изх которой копировали
+        if del_old_sell:  # стираем значение в ячейке, из которой копировали
             ws.cell(row, column_index_from_string(col_from)).value = ""
 
 
@@ -318,11 +319,15 @@ def copy_hash_of_cells(id_fond, ws, row_begin, col_to, col_from,
 
         txt_list = txt_from_list[word_start:word_end]
 
-        # удаляем точку в конце последнего слова
-        # (актуально при копировании паспортных данных)
-        if len(txt_list) == 2:
-            if txt_list[1].endswith('.'):
-                txt_list[1] = txt_list[1][:-1]
+        # # удаляем точку в конце последнего слова
+        # # (актуально при копировании паспортных данных)
+        # if len(txt_list) == 2:
+        #     if txt_list[1].endswith('.'):
+        #         txt_list[1] = txt_list[1][:-1]
+
+        # # если id состоит из ФИО, то находим серию и номер паспорта
+        # if fio:
+        #     txt_list = pasport_from_str(' '.join(txt_list))
 
         first_word = '_'.join(txt_list)
         id_txt = ""
@@ -334,19 +339,19 @@ def copy_hash_of_cells(id_fond, ws, row_begin, col_to, col_from,
         # Если Основания начинается с "Налоговый кодекс"
         nk = 'Налоговый кодекс'
         if txt_from.startswith(nk):
-            # допавляем "nk"
+            # добавляем "nk"
             id_txt = id_txt + '_' + nk
             # и добавляем только 'id_fond'
 
         else:  # продолжаем анализ
 
-            # ...если нужно вставить Фамилию
-            if fio:
-                initials = fio_initials(ws.cell(row, column_index_from_string(fio)).value)
-                if id_txt:
-                    id_txt = id_txt + '_' + initials
-                else:
-                    id_txt = initials
+            # # ...если нужно вставить Фамилию
+            # if fio:
+            #     initials = fio_initials(ws.cell(row, column_index_from_string(fio)).value)
+            #     if id_txt:
+            #         id_txt = id_txt + '_' + initials
+            #     else:
+            #         id_txt = initials
 
             # добавляем 'first_word'
             id_txt = id_txt + '_' + first_word
@@ -415,8 +420,12 @@ def find_nomber(txt, n='№'):
 
 def fio_initials(txt):
     """ Фамилие и инициалы физ.лица"""
-    txt_list = txt.split()
-    return txt_list[0] + ' ' + txt_list[1][0].upper() + '.' + txt_list[2][0].upper() + '.'
+    # используем только первые три слова (ФИО или ФИ)
+    txt_list = txt.split()[:3]
+    inicials = ''
+    for i in range(1, len(txt_list)):
+        inicials += txt_list[i][0].upper() + '.'
+    return txt_list[0] + ' ' + inicials
 
 
 def copy_birzha_id(ws, row_begin, col_to, col_from):
@@ -431,7 +440,7 @@ def copy_birzha_id(ws, row_begin, col_to, col_from):
                 ws.cell(row, column_index_from_string(col_from)).value
 
 
-def corrector_depozit_type(ws, col ='I', row = 11):
+def corrector_depozit_type(ws, col='I', row=11):
     """ Добавляем пробел ' ' после 'Да' или 'Нет' """
 
     # 0420502 Справка о стоимости чистых активов,
@@ -449,6 +458,131 @@ def corrector_depozit_type(ws, col ='I', row = 11):
 
 
 # %%
+# def pasport_from_str(pasport: str):
+#     """Найти серию и номер паспорта в тексте"""
+#
+#     txt_lst = pasport.split()
+#     seriya = ''
+#     nomer = ''
+#     for word in txt_lst:
+#
+#         # удаляем точку в конце строки
+#         word = word.rstrip('.')
+#
+#         # слово состоит из цифр и
+#         # серия паспорта не определена либо состоит только из 2-х знаков
+#         if word.isdigit() and (not seriya or len(seriya) == 2):
+#             seriya = seriya + word
+#             continue
+#         # слово состоит из цифр и серия паспорта определена
+#         if word.isdigit() and seriya:
+#             nomer = word
+#             break
+#
+#     # return '_' + pas_1 + '_' * bool(pas_2) + pas_2
+#     return [seriya, nomer]
+
+
+def pasport_from_str(pasport: str):
+    """Найти серию и номер паспорта в тексте"""
+
+    txt_lst = pasport.split()
+    seriya = ''
+    nomer = ''
+    for word in txt_lst:
+        # удаляем точку и запятую в конце строки
+        word = word.rstrip('.')
+        word = word.rstrip(',')
+        # слово состоит из цифр и
+        # серия паспорта не определена либо состоит только из 2-х знаков
+        if word.isdigit() and (not seriya or len(seriya) == 2):
+            seriya = seriya + word
+            continue
+        # слово состоит из цифр и серия паспорта определена
+        if word.isdigit() and seriya:
+            nomer = word
+            break
+    return seriya + '_' * bool(nomer) + nomer
+
+
+def id_fiz_face(ws, row_begin, col_fio, col_pas, col_id):
+    """Формирование id физ.лица """
+    for row in range(row_begin, ws.max_row):
+        fio = str(ws.cell(row, column_index_from_string(col_fio)).value)
+        pas = str(ws.cell(row, column_index_from_string(col_pas)).value)
+        id_fl = fio_initials(fio) + '_' + pasport_from_str(pas)
+        ws.cell(row, column_index_from_string(col_id)).value = id_fl
+
+
+def find_nomber_2(txt):
+    """Поиск в строке фрагмента '№'(номер договора)"""
+    fragment = ''
+    txt_list = txt.split()
+    for i, word in enumerate(txt_list):
+        # слово начинается с "№" ("№12/34" или "№")
+        if word.startswith('№'):
+            # состоит только из одного символа ('№')
+            if len(word) == 1:
+                # не является последним словом в строке
+                if i != len(txt_list) - 1:
+                    # если после '№' нет слова 'от'
+                    if txt_list[i + 1] != 'от':
+                        # запоминаем слово, следующее за "№"
+                        fragment = txt_list[i + 1]
+                        break
+                # является последним словом в строке и состоит только из одного символа "№"
+                else:
+                    break
+            # между "№" и номером нет пробела ('№12/34')
+            else:
+                fragment = word[1:]
+                break
+    # если во всех словах не найден "№"
+    if not fragment:
+        fragment = "б/н"
+
+    return '№' + fragment
+
+
+def find_dokumentName(txt):
+    """Поиск названия документа"""
+    txt_list = txt.split()
+    if len(txt_list) < 2: print(f'Внимание: строка "{txt}" содержит всего одно слово.')
+    if txt_list[0].lower() == 'налоговый':
+        return txt_list[0].title() + '_' + txt_list[1].lower()
+    else:
+        return txt_list[0].title()
+
+
+def id_osnovaniya(txt):
+    """Идентификатор основания возникновения ... задолженности"""
+    name = find_dokumentName(txt)
+    nomber = find_nomber_2(txt)
+    return name + '_' + nomber
+
+def copy_id_osnovaniya(id_fond, ws, row_begin, col_to, col_from):
+    """Записываем в ячейки Идентификатор основания возникновения ... задолженности"""
+
+    for n, row in enumerate(range(row_begin, ws.max_row), 1):
+        txt = str(ws.cell(row, column_index_from_string(col_from)).value)
+        ws.cell(row, column_index_from_string(col_to)).value = \
+            id_osnovaniya(txt) + '_' + '(' + id_fond + ')' + '(' + str(n) + ')'
+
+
+
+
+
+# %%
 
 if __name__ == "__main__":
     pass
+
+    # t1 = 'Паспорт иностранного гражданина, 07732966. Выдан Министерством внутренних дел, 16.11.2011 г. '
+    # t2 = 'Паспорт гражданина РФ, 6012 075791. Выдан: Отделом УФМС России по Ростовской области в городе Новочеркасске, 07.11.2011'
+    # t3 = 'Паспорт гражданина РФ, 12  34 075791. Выдан: Отделом УФМС России по Ростовской области в городе Новочеркасске, 07.11.2011'
+    #
+    # print (id_from_pasport(t1))
+
+    id_fond = 'eeeee'
+    txt = 'договор №345345 от'
+    print(id_osnovaniya(txt))

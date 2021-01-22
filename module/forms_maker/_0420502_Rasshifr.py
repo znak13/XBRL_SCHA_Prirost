@@ -1508,10 +1508,11 @@ def rashifr(wb, df_avancor, id_fond):
             row_begin = 11
             # ---------------------------------------------------------
             # Вставляем "Идентификатор физического лица"
-            col_from = 'J'
+            col_pas = 'J'
             col_fio = 'I'
-            adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[0], col_from,
-                                   word_start=3, word_end=5, fio=col_fio)
+            # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[0], col_from,
+            #                        word_start=3, word_end=5, fio=col_fio)
+            adj.id_fiz_face(ws, row_begin, col_fio, col_pas, col_id[0])
             # ---------------------------------------------------------
             # Вставляем Идентификатор денежного требования
             col_from = 'D'
@@ -1609,10 +1610,11 @@ def rashifr(wb, df_avancor, id_fond):
             row_begin = 11
             # ---------------------------------------------------------
             # Вставляем "Иидентификатор физического лица"
-            col_from = 'J'
+            col_pas = 'J'
             col_fio = 'I'
-            adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[0], col_from,
-                                   word_start=3, word_end=5, fio=col_fio)
+            # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[0], col_from,
+            #                        word_start=3, word_end=5, fio=col_fio)
+            adj.id_fiz_face(ws, row_begin, col_fio, col_pas, col_id[0])
             # ---------------------------------------------------------
             # Вставляем Идентификатор денежного требования
             col_from = 'D'
@@ -2034,17 +2036,23 @@ def rashifr(wb, df_avancor, id_fond):
             # Номер первой строки с данными
             row_begin = 11
             # ---------------------------------------------------------
-            # Вставляем идентификатор физ лица
-            col_from = 'J'
+            # Вставляем "Идентификатор физического лица"
+            col_id_ = col_id[0]
+            col_pas = 'J'
             col_fio = 'H'
-            adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[0], col_from,
-                                   word_start=3, word_end=5,
-                                   fio=col_fio, fond_name=False)
+            # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[0], col_pas,
+            #                        word_start=3, word_end=7,
+            #                        fio=col_fio, fond_name=False)
+            adj.id_fiz_face(ws, row_begin, col_fio, col_pas, col_id_)
+
             # ---------------------------------------------------------
             # Вставляем идентификатор основания дебиторской задолженности
+            col_id_ = col_id[1]
             col_from = 'F'
-            adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
-                                   delta=True, dogovor_n=True, fond_name=True)
+            # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
+            #                        delta=True, dogovor_n=True, fond_name=True)
+            adj.copy_id_osnovaniya(id_fond, ws, row_begin, col_id_, col_from)
+
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
@@ -2099,8 +2107,9 @@ def rashifr(wb, df_avancor, id_fond):
             row_begin = 11
             col_id = 'C'
             col_from = 'F'
-            adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id, col_from,
-                                   delta=True, dogovor_n=True, fond_name=True)
+            # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id, col_from,
+            #                        delta=True, dogovor_n=True, fond_name=True)
+            adj.copy_id_osnovaniya(id_fond, ws, row_begin, col_id, col_from)
             # ---------------------------------------------------------
             # Убираем лишние '.00' в конце строки,
             # которые могут появиться после копирования...
@@ -2148,11 +2157,12 @@ def rashifr(wb, df_avancor, id_fond):
             # Номер первой строки с данными
             row_begin = 11
             # ---------------------------------------------------------
-            # Вставляем идентификатор физ лица
-            col_from = 'I'
+            # Вставляем "Идентификатор физического лица"
+            col_pas = 'I'
             col_fio = 'H'
-            adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[0], col_from,
-                                   word_start=3, word_end=5, fio=col_fio)
+            # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[0], col_from,
+            #                        word_start=3, word_end=5, fio=col_fio)
+            adj.id_fiz_face(ws, row_begin, col_fio, col_pas, col_id[0])
             # ---------------------------------------------------------
             # Вставляем идентификатор основания задолженности
             col_from = 'F'
