@@ -106,6 +106,7 @@ class ReportFiles(Frame):
         print('Close')
         # self.parent.quit()
         self.parent.destroy()
+        quit()
 
     def doOK(self):
         self.todo = True
@@ -121,6 +122,7 @@ class ReportFiles(Frame):
             """ имя выбранного файла и путь """
             fileName = askopenfilename(
                 title=title,
+                initialdir = os.getcwd() + '\\' + dir_reports,
                 filetypes=(("xlsx files", "*.xlsx"), ("All files", "*.*")))
             if fileName:
                 # путь к файлу

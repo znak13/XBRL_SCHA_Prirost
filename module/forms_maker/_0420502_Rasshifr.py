@@ -1315,8 +1315,9 @@ def rashifr(wb, df_avancor, id_fond):
             # ---------------------------------------------------------
             # Вставляем Идентификатор договора
             col_from = 'C'
-            adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[0], col_from,
-                                   delta=False, dogovor_n=True, fond_name=True)
+            # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[0], col_from,
+            #                        delta=False, dogovor_n=True, fond_name=True)
+            adj.id_dogovor(id_fond, ws, row_begin, col_id[0], col_from)
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
@@ -1516,8 +1517,10 @@ def rashifr(wb, df_avancor, id_fond):
             # ---------------------------------------------------------
             # Вставляем Идентификатор денежного требования
             col_from = 'D'
-            adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
-                                   delta=True, dogovor_n=True, fond_name=True)
+            # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
+            #                        delta=True, dogovor_n=True, fond_name=True)
+
+            adj.id_den_treb(id_fond, ws, row_begin, col_id[1], col_from)
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
@@ -1563,9 +1566,10 @@ def rashifr(wb, df_avancor, id_fond):
             # ---------------------------------------------------------
             # Вставляем Идентификатор денежного требования
             col_from = 'D'
-            adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
-                                   word_end=1,
-                                   delta=True, dogovor_n=True, fond_name=True)
+            # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
+            #                        word_end=1,
+            #                        delta=True, dogovor_n=True, fond_name=True)
+            adj.id_den_treb(id_fond, ws, row_begin, col_id[1], col_from)
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
@@ -2051,7 +2055,7 @@ def rashifr(wb, df_avancor, id_fond):
             col_from = 'F'
             # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
             #                        delta=True, dogovor_n=True, fond_name=True)
-            adj.copy_id_osnovaniya(id_fond, ws, row_begin, col_id_, col_from)
+            adj.id_osnovaniya_zadilzhennosti(id_fond, ws, row_begin, col_id_, col_from)
 
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
@@ -2109,7 +2113,7 @@ def rashifr(wb, df_avancor, id_fond):
             col_from = 'F'
             # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id, col_from,
             #                        delta=True, dogovor_n=True, fond_name=True)
-            adj.copy_id_osnovaniya(id_fond, ws, row_begin, col_id, col_from)
+            adj.id_osnovaniya_zadilzhennosti(id_fond, ws, row_begin, col_id, col_from)
             # ---------------------------------------------------------
             # Убираем лишние '.00' в конце строки,
             # которые могут появиться после копирования...
@@ -2165,9 +2169,11 @@ def rashifr(wb, df_avancor, id_fond):
             adj.id_fiz_face(ws, row_begin, col_fio, col_pas, col_id[0])
             # ---------------------------------------------------------
             # Вставляем идентификатор основания задолженности
+            col_id_ = col_id[1]
             col_from = 'F'
-            adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
-                                   delta=True, dogovor_n=True, fond_name=True)
+            # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
+            #                        delta=True, dogovor_n=True, fond_name=True)
+            adj.id_osnovaniya_zadilzhennosti(id_fond, ws, row_begin, col_id_, col_from)
             # ---------------------------------------------------------
             # Проверяем заполнены ли все идентивикаторы
             id_errors(ws, col_id, row_begin=row_begin)
@@ -2211,10 +2217,13 @@ def rashifr(wb, df_avancor, id_fond):
             adj.copy_cells_one2one(ws, row_begin, col_id[0], col_from)
             # ---------------------------------------------------------
             # Вставляем идентификатор основания задолженности
+            col_id_ = col_id[1]
             col_from = 'F'
-            adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
-                                   word_end=1,
-                                   delta=True, dogovor_n=True, fond_name=True)
+            # adj.copy_hash_of_cells(id_fond, ws, row_begin, col_id[1], col_from,
+            #                        word_end=1,
+            #                        delta=True, dogovor_n=True, fond_name=True)
+            adj.id_osnovaniya_zadilzhennosti(id_fond, ws, row_begin, col_id_, col_from)
+            # ---------------------------------------------------------
             # Проверяем заполнены ли все идентификаторы
             id_errors(ws, col_id, row_begin=row_begin)
             # ---------------------------------------------------------

@@ -95,6 +95,7 @@ def id_errors(ws, columns: (list or tuple), row_begin: int = 11):
                 log.error(f'"{ws.title}", строка({row}), колонка({col}) --> отсутствует Идентификатор')
 
 
+
 # %%
 def txt_compare(txt1: str, txt2: str) -> bool:
     """Сравнение друх строк текста, исключая пробелы"""

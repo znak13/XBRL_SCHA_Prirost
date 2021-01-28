@@ -387,8 +387,8 @@ def copy_hash_of_cells(id_fond, ws, row_begin, col_to, col_from,
 
 
 def find_nomber(txt, n='№'):
-    """Поиск в строке фрагмента 'n'(номер договора)"""
-    # n - элемент, с которого начинается искомый fragment
+    """Поиск в строке фрагмента '№'(номер договора)"""
+    # № - элемент, с которого начинается искомый fragment
     stop = False
     fragment = None
     txt_list = txt.split()
@@ -423,6 +423,8 @@ def fio_initials(txt):
     # используем только первые три слова (ФИО или ФИ)
     txt_list = txt.split()[:3]
     inicials = ''
+    if len(txt_list) < 2:
+        log.error(f'ФИО физ.лица: "{txt}" состоит только из одного слова.')
     for i in range(1, len(txt_list)):
         inicials += txt_list[i][0].upper() + '.'
     return txt_list[0] + ' ' + inicials
@@ -537,7 +539,7 @@ def find_nomber_2(txt):
             else:
                 fragment = word[1:]
                 break
-    # если во всех словах не найден "№"
+    # если во всех словах не найден "№", то догово без номера
     if not fragment:
         fragment = "б/н"
 
@@ -547,10 +549,14 @@ def find_nomber_2(txt):
 def find_dokumentName(txt):
     """Поиск названия документа"""
     txt_list = txt.split()
-    if len(txt_list) < 2: print(f'Внимание: строка "{txt}" содержит всего одно слово.')
+    if len(txt_list) < 2:
+        log.error(f'Внимание: название документа "{txt}" содержит всего одно слово.')
     if txt_list[0].lower() == 'налоговый':
+        # если строка начинается с "Налоговый", то речь идет о "Налоговый кодекс"
+        # в этом случае возвращаем два первых слова
         return txt_list[0].title() + '_' + txt_list[1].lower()
     else:
+        # Возвращаем первое слово в строке
         return txt_list[0].title()
 
 
@@ -558,17 +564,58 @@ def id_osnovaniya(txt):
     """Идентификатор основания возникновения ... задолженности"""
     name = find_dokumentName(txt)
     nomber = find_nomber_2(txt)
+    if name.lower() == 'налоговый_кодекс':
+        return name
     return name + '_' + nomber
 
-def copy_id_osnovaniya(id_fond, ws, row_begin, col_to, col_from):
-    """Записываем в ячейки Идентификатор основания возникновения ... задолженности"""
+
+def id_osnovaniya_zadilzhennosti(id_fond, ws, row_begin, col_to, col_from):
+    """Формирование id основания возникновения ... задолженности"""
 
     for n, row in enumerate(range(row_begin, ws.max_row), 1):
         txt = str(ws.cell(row, column_index_from_string(col_from)).value)
+        # ws.cell(row, column_index_from_string(col_to)).value = \
+        #     id_osnovaniya(txt) + '_' + '(' + id_fond + ')' + '(' + str(n) + ')'
+        _id_ = id_osnovaniya(txt)
+
+        # если текст в колонке встречается более одного раза,
+        # то к идентификатору добавляем индекс
+        index = find_copy(ws, row_begin, col_to, _id_)
+
         ws.cell(row, column_index_from_string(col_to)).value = \
-            id_osnovaniya(txt) + '_' + '(' + id_fond + ')' + '(' + str(n) + ')'
+            _id_ + '_' * bool(index) + index
+            # _id_ + '_' + '(' + id_fond + ')' + index
 
 
+def find_copy(ws, row_begin, col, txt):
+    """Поиск ячеек в столбце:'col', которые начинаются с 'txt'.
+    Возвращаем строку с количеством повторений либо пустую строку, если повторений нет"""
+    count = 1
+    for row in range(row_begin, ws.max_row):
+        cell = str(ws.cell(row, column_index_from_string(col)).value)
+        if cell.startswith(txt):
+            count += 1
+    if count > 1:
+        return '(' + str(count) + ')'
+    return ''
+
+def id_den_treb(id_fond, ws, row_begin, col_to, col_from):
+    """ Формирование id денежного требования"""
+    for row in range(row_begin, ws.max_row):
+        dogovr_number = str(ws.cell(row, column_index_from_string(col_from)).value)
+        _id_ = 'Договор' + '_' + dogovr_number
+
+        # если текст в колонке встречается более одного раза,
+        # то к идентификатору добавляем индекс
+        index = find_copy(ws, row_begin, col_to, _id_)
+
+        ws.cell(row, column_index_from_string(col_to)).value = \
+            _id_ + '_'*bool(index) + index
+            # _id_ + '_' + '(' + id_fond + ')' + index
+
+def id_dogovor(id_fond, ws, row_begin, col_to, col_from):
+    """Формирование id договора"""
+    id_den_treb(id_fond, ws, row_begin, col_to, col_from)
 
 
 
@@ -583,6 +630,6 @@ if __name__ == "__main__":
     #
     # print (id_from_pasport(t1))
 
-    id_fond = 'eeeee'
-    txt = 'договор №345345 от'
-    print(id_osnovaniya(txt))
+    # id_fond = 'eeeee'
+    # txt = 'договор №345345 от'
+    # print(id_osnovaniya(txt))
