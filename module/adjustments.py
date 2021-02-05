@@ -268,11 +268,12 @@ def copy_bank_account(id_fond, wb_pif_info, ws, row_begin, col_to, col_from):
 
         cell_to = ws.cell(row_ws, column_index_from_string(col_to))
         if prim and prim == prim and prim != 'None':
-            for row_pif in range(1, ws_pif_info.max_row):
+            # перебираем строки в файле "pif_info"
+            for row_pif in range(1, ws_pif_info.max_row + 1 ):
                 # номер счета
                 bank_account = str(ws_pif_info.cell(row_pif, column_index_from_string(col_pif)).value)
                 # если номер счета заканчивается на 'prim'
-                if bank_account.endswith(prim):
+                if bank_account.endswith(prim) or bank_account == prim:
                     # копируем номер счета из файла "pif_info"
                     cell_to.value = bank_account
 
@@ -280,6 +281,7 @@ def copy_bank_account(id_fond, wb_pif_info, ws, row_begin, col_to, col_from):
                     ws.cell(row_ws, column_index_from_string(col_from)).value = ""
 
         else:
+            log.error(f'Форма"{ws_pif_info}": в "Примечании" не указан номер счета: prim = "{prim}"')
             red_error(cell_to)
 
 
