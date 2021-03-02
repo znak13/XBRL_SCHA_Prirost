@@ -12,13 +12,6 @@ global log
 # from module.data_load import load_pif_info
 
 
-# %%
-def coordinate(cell):
-    """Конвртер координат: 'A10' преобразуем в '10, 1' """
-    col, row = coordinate_from_string(cell)
-    col = column_index_from_string(col)
-    return row, col
-
 
 # %%
 def end_col_number(ws, row_id_fond=5):
@@ -225,6 +218,9 @@ def cell_00(ws, cell):
                 ws.cell(row, col).value = '0.00'
 
 # %%
+# %%
+"""Опреции с именем файла"""
+
 def pathToFile(up=1, folder=None):
     """ Путь к файлу, расположенному в папке 'folder' """
     # up = 1  # кол-во каталогов "вверх"
@@ -241,7 +237,6 @@ def pathToFile(up=1, folder=None):
     return path_to_folder
 
 
-# %%
 def fileName(file_name):
     """ Имя файла без пути к нему"""
     # пример: file_name = 'h:/_Отчетность_/Конвертер/Идентификаторы.xlsx'
@@ -252,11 +247,11 @@ def fileDir(file_name):
     """ Путь к файлу"""
     # пример: file_name = 'h:/_Отчетность_/Конвертер/Идентификаторы.xlsx'
     return '/'.join(file_name.split('/')[:-1]) + '/'
-
-
 # %%
+# %%
+
 def fond_id_search():
-    """Построение списка идентификаторов фонда из файла"""
+    """Построение списка идентификаторов фондов из файла"""
 
     # Загружаем данные из файла с информацией о фондах
     wb = openpyxl.load_workbook(dir_shablon + pif_info)

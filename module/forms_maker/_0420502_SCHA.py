@@ -3,6 +3,7 @@
 import module.adjustments as adj
 import module.functions as fun
 import module.dataCopy as dcop
+from openpyxl.utils.cell import coordinate_to_tuple  # 'D2' -> (2,4)
 
 # from openpyxl.styles import Alignment
 # from module.functions import codesSheets, listSheetsName, sheetNameFromUrl
@@ -28,8 +29,8 @@ def scha (wb, id_fond, df_avancor):
 
     # **********************************************************************************
     def copyFromAvancore(ws, AvancoreCellBegin, AvancoreCellEnd, AvancoreTblCols):
-        cell_start_row, cell_start_col = fun.coordinate(AvancoreCellBegin)
-        cell_end_row, cell_end_col = fun.coordinate(AvancoreCellEnd)
+        cell_start_row, cell_start_col = coordinate_to_tuple(AvancoreCellBegin)
+        cell_end_row, cell_end_col = coordinate_to_tuple(AvancoreCellEnd)
         # Номера колонок в таблице Аванкор (за исключением пустых)
         columns_numbers = fun.find_columns_numbers(df_avancor, cell_end_col,
                                                    AvancoreTblCols, cell_start_row,
@@ -77,7 +78,7 @@ def scha (wb, id_fond, df_avancor):
         # Убираем лишние '.00' в конце строки,
         # которые могут появиться после копирования:
         # "номер лицензии", "ОКПО"
-        adj.corrector_00_v2(ws, 'D', 'E', row=10)
+        adj.corrector_00(ws, 'D', 'E', row=10)
 
     # **********************************************************************************
     def scha_02():

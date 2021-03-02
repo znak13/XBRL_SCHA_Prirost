@@ -3,7 +3,8 @@ import pandas as pd
 
 import module.functions as fun
 import module.adjustments as adj
-# import module.dataCheck as dCheck
+import module.dataCheck as dCheck
+from openpyxl.utils.cell import coordinate_to_tuple  # 'D2' -> (2,4)
 
 from module.globals import *
 
@@ -31,7 +32,7 @@ def podpisant(wb, df_avancor, id_fond):
         fio = df_avancor.loc[avancor_title_row, avancor_fio_col]
 
         # записываем в форму xbrl
-        row_fio, col_fio = fun.coordinate(cell_fio)
+        row_fio, col_fio = coordinate_to_tuple(cell_fio)
         ws.cell(row_fio, col_fio).value = fio
 
     # **********************************************************************************
@@ -115,6 +116,10 @@ def podpisant(wb, df_avancor, id_fond):
         fioShort(ws, AvancoreTitle, avancor_fio_col, cell_fio)
         # Заменяем короткое-ФИО на полное-ФИО подписанта
         fioFull(ws, cell_fio)
+        # ---------------------------------------------------------
+        # Проверяем является ли ячейка пустой
+        dCheck.empty_cell(ws, cell_fio, cell_fio)
+        # ---------------------------------------------------------
 
     # **********************************************************************************
     def podpisant_57():
@@ -139,9 +144,14 @@ def podpisant(wb, df_avancor, id_fond):
 
         # Проставляем id-Фонда
         ws['A8'].value = id_fond
+        # ---------------------------------------------------------
         # Проставляем реквизиты СпецДепа
         # adj.corrector_Podpisant_3_(ws, df_identifier, id_fond)
         adj.corrector_Podpisant_3_v2(ws, id_fond)
+        # ---------------------------------------------------------
+        # Проверяем является ли ячейка пустой
+        dCheck.empty_cell(ws, 'A8', 'E8')
+        # ---------------------------------------------------------
 
     # **********************************************************************************
     urlSheets = fun.codesSheets(wb)  # словарь - "код вкладки":"имя вкладки"

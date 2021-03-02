@@ -1,6 +1,7 @@
 """ Формирование форм СЧА - пояснительные записки"""
 import module.functions as fun
 import module.dataCopy as dcop
+from openpyxl.utils.cell import coordinate_to_tuple  # 'D2' -> (2,4)
 
 global log
 # Формы:
@@ -72,7 +73,7 @@ def zapiski_new(wb, df_avancor, id_fond):
         return True
 
     def makeForm(shortURL, avancoreTitle, max_number, cell_start):
-        cell_start_row, cell_start_col = fun.coordinate(cell_start)
+        cell_start_row, cell_start_col = coordinate_to_tuple(cell_start)
         sheetName = fun.sheetNameFromUrl(urlSheets, shortURL)  # имя вкладки
         ws = wb[sheetName]
         print(f'{sheetName} - {shortURL}')

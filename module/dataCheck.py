@@ -6,8 +6,7 @@ from openpyxl.utils import column_index_from_string  # 'B' -> 2
 from openpyxl.styles import colors
 from openpyxl.styles import Font
 
-from module.globals import *
-
+from module.globals import error_txt
 global log
 
 
@@ -18,14 +17,21 @@ def find_parametr(ws, row_begin, col):
     for row in range(1, 10):
         cell = ws.cell(row_begin - row, col).value
 
+        # В ячейке цифра(номер столбца) или
         # в пояснительной записке №3 вместо номера столбца укзано "Содержание"
-        if str(cell).isdigit() or str(cell) == "Содержание":
+        if str(cell).isdigit() or \
+                (str(cell) == "Содержание" and str(ws.cell(3, 1).value).endswith('SR_0420502_PZ_inaya_inf')):
             # название столбца находится на строчку выше
             row_param = row_begin - row - 1
             cell = ws.cell(row_param, col).value
             return cell
+
         # в пояснительной записке №2 нет номера столбца
-        if str(cell).startswith('Сведения о событиях'):
+        # в пояснительной записке №5 нет номера столбца: 'Сумма'
+        # в "0420502 Справка о стоимости _56" нет номера столбца: 'Содержание'
+        if str(cell).startswith('Сведения о событиях') or \
+                str(cell) == 'Сумма' or \
+                (str(cell) == 'Содержание' and str(ws.cell(3, 1).value).endswith('SR_0420502_Podpisant')):
             # название столбца находится в этой ячейке
             row_param = row_begin - row
             cell = ws.cell(row_param, col).value
@@ -65,7 +71,9 @@ def empty_cell(ws, cellBegin, cellEnd):
             cellData = ws.cell(row, col).value
             if not cellData or \
                     str(cellData).startswith('Не установлен') or \
-                    cellData == 'None':
+                    cellData == 'None' or \
+                    cellData != cellData or \
+                    cellData == error_txt:
                 red_error(ws.cell(row, col))
                 log.error(f'"{ws.title}" --> пустая ячейка "{get_column_letter(col) + str(row)}"')
 
@@ -90,7 +98,7 @@ def id_errors(ws, columns: (list or tuple), row_begin: int = 11):
     for row in range(row_begin, ws.max_row):
         for col in columns:
             cell = ws.cell(row, column_index_from_string(col))
-            if cell.value in [None, error_txt]:
+            if cell.value in [None, 'None', error_txt]:
                 red_error(cell)
                 log.error(f'"{ws.title}", строка({row}), колонка({col}) --> отсутствует Идентификатор')
 

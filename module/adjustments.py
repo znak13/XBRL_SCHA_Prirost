@@ -3,7 +3,8 @@
 import pandas as pd
 from openpyxl.styles import Alignment
 from openpyxl.utils import column_index_from_string  # 'B' -> 2
-from module.functions import coordinate
+from openpyxl.utils.cell import coordinate_to_tuple  # 'D2' -> (2,4)
+# from module.functions import coordinate
 from module.functions import codesSheets, sheetNameFromUrl
 from module.functions import razdel_name_row, start_data_row, end_data_row, find_columns_numbers
 from module.functions import pai_search
@@ -124,8 +125,8 @@ def corrector_scha_13_(id_fond, ws, df_avancor):
     # cell = col_fIx + str(row_fix)
     # fix = ws_pif_info[cell].value
 
-    today_row, today_col = coordinate('I144')
-    previous_row, previous_col = coordinate('K144')
+    today_row, today_col = coordinate_to_tuple('I144')
+    previous_row, previous_col = coordinate_to_tuple('K144')
 
     today = toFixed(df_avancor.loc[today_row, today_col], digits=fix)
     previous = toFixed(df_avancor.loc[previous_row, previous_col], digits=fix)
@@ -199,24 +200,7 @@ def data_search(df_avancor, avancoreTitle):
     return row_data, row_end
 
 
-def corrector_00(ws, row: int = None, col: str = None):
-    """ Убираем лишние '.00' в конце строки,
-    которые могут появиться после копирования данных"""
-    # (например при копировании ИНН: "7705373131" => "7705373131.00" )
-    # row: int - начальная строка столбца с данными
-    # col: str - колонка столбца с данными
-
-    col = column_index_from_string(col)
-    for r in range(row, ws.max_row + 1):
-        cell = ws.cell(r, col)
-        value = cell.value
-        # в тексте есть '.00'
-        if value.endswith('.00'):
-            value = value[:-3]
-            cell.value = value
-
-
-def corrector_00_v2(ws, *colls, row: int = 11):
+def corrector_00(ws, *colls, row: int = 11):
     """ Убираем лишние '.00' в конце строки,
     которые могут появиться после копирования данных"""
     # (например при копировании ИНН: "7705373131" => "7705373131.00" )
@@ -264,12 +248,13 @@ def copy_bank_account(id_fond, wb_pif_info, ws, row_begin, col_to, col_from):
         # если в ячейке цифра со знаками после запятой, то берем только целую часть
         # (может появиться после анализа данных при копировании из Аванкор )
         prim = prim.split('.')[0]
-        # print(prim)
 
         cell_to = ws.cell(row_ws, column_index_from_string(col_to))
         if prim and prim == prim and prim != 'None':
+
             # перебираем строки в файле "pif_info"
-            for row_pif in range(1, ws_pif_info.max_row + 1 ):
+            bank_account = ''
+            for row_pif in range(1, ws_pif_info.max_row + 1):
                 # номер счета
                 bank_account = str(ws_pif_info.cell(row_pif, column_index_from_string(col_pif)).value)
                 # если номер счета заканчивается на 'prim'
@@ -279,25 +264,24 @@ def copy_bank_account(id_fond, wb_pif_info, ws, row_begin, col_to, col_from):
 
                     # стираем значение в ячейке "Примечание"
                     ws.cell(row_ws, column_index_from_string(col_from)).value = ""
+                else:
+                    # номер счета не найден
+                    bank_account = ''
+
+            # если в итоге, в файле "pif_info" не нашли номер чсета,
+            # но в "Примечании" указан номер счета полностью (20 цифр)
+            if not bank_account and len(prim) == 20:
+                # копируем номер счета из "Примечание"
+                cell_to.value = prim
+                # стираем значение в ячейке "Примечание"
+                ws.cell(row_ws, column_index_from_string(col_from)).value = ""
 
         else:
             log.error(f'Форма"{ws_pif_info}": в "Примечании" не указан номер счета: prim = "{prim}"')
             red_error(cell_to)
 
 
-def make_id(txt: str, start=1, end=2) -> str:
-    """Создание идентификатора из текста"""
-
-    start = start - 1
-    id_txt = txt.split()[start:end]
-    return '_'.join(id_txt)
-
-
-def copy_path_of_cells(ws, row_begin, col_to, col_from):
-    for n, row in enumerate(range(row_begin, ws.max_row), 1):
-        txt_from = ws.cell(row, column_index_from_string(col_from)).value
-        id_txt = make_id(txt_from) + '_' + str(n)
-        ws.cell(row, column_index_from_string(col_to)).value = id_txt
+"""Проверить актуальность этой функции. Возможно она лишняя."""
 
 
 def copy_hash_of_cells(id_fond, ws, row_begin, col_to, col_from,
@@ -461,32 +445,6 @@ def corrector_depozit_type(ws, col='I', row=11):
             cell.value = cell.value + ' '
 
 
-# %%
-# def pasport_from_str(pasport: str):
-#     """Найти серию и номер паспорта в тексте"""
-#
-#     txt_lst = pasport.split()
-#     seriya = ''
-#     nomer = ''
-#     for word in txt_lst:
-#
-#         # удаляем точку в конце строки
-#         word = word.rstrip('.')
-#
-#         # слово состоит из цифр и
-#         # серия паспорта не определена либо состоит только из 2-х знаков
-#         if word.isdigit() and (not seriya or len(seriya) == 2):
-#             seriya = seriya + word
-#             continue
-#         # слово состоит из цифр и серия паспорта определена
-#         if word.isdigit() and seriya:
-#             nomer = word
-#             break
-#
-#     # return '_' + pas_1 + '_' * bool(pas_2) + pas_2
-#     return [seriya, nomer]
-
-
 def pasport_from_str(pasport: str):
     """Найти серию и номер паспорта в тексте"""
 
@@ -541,6 +499,26 @@ def find_nomber_2(txt):
             else:
                 fragment = word[1:]
                 break
+
+        # слово заканчивается на "№" и нет пробела перед "№": "Договор№"
+        elif word.endswith('№'):
+            pass
+            # если после слова, содержащего "№", есть еще слово
+            if len(txt_list) > i + 1:
+                # если после '№' нет слова 'от'
+                if txt_list[i + 1] != 'от':
+                    # запоминаем слово, следующее за "№"
+                    fragment = txt_list[i + 1]
+                    break
+
+        # в слове содержится "№", но не с начала слова и не в конце
+        elif '№' in word:
+            # находим положение "№"
+            n = word.find('№')
+            # номер договора - это знаки после "№"
+            fragment = word[(n + 1):]
+            break
+
     # если во всех словах не найден "№", то догово без номера
     if not fragment:
         fragment = "б/н"
@@ -586,7 +564,7 @@ def id_osnovaniya_zadilzhennosti(id_fond, ws, row_begin, col_to, col_from):
 
         ws.cell(row, column_index_from_string(col_to)).value = \
             _id_ + '_' * bool(index) + index
-            # _id_ + '_' + '(' + id_fond + ')' + index
+        # _id_ + '_' + '(' + id_fond + ')' + index
 
 
 def find_copy(ws, row_begin, col, txt):
@@ -601,37 +579,39 @@ def find_copy(ws, row_begin, col, txt):
         return '(' + str(count) + ')'
     return ''
 
+
 def id_den_treb(id_fond, ws, row_begin, col_to, col_from):
     """ Формирование id денежного требования"""
     for row in range(row_begin, ws.max_row):
         dogovr_number = str(ws.cell(row, column_index_from_string(col_from)).value)
-        _id_ = 'Договор' + '_' + dogovr_number
+        _id_ = 'Договор' + '_' + "№" + dogovr_number
 
         # если текст в колонке встречается более одного раза,
         # то к идентификатору добавляем индекс
         index = find_copy(ws, row_begin, col_to, _id_)
 
         ws.cell(row, column_index_from_string(col_to)).value = \
-            _id_ + '_'*bool(index) + index
-            # _id_ + '_' + '(' + id_fond + ')' + index
+            _id_ + '_' * bool(index) + index
+        # _id_ + '_' + '(' + id_fond + ')' + index
+
 
 def id_dogovor(id_fond, ws, row_begin, col_to, col_from):
     """Формирование id договора"""
     id_den_treb(id_fond, ws, row_begin, col_to, col_from)
 
 
+def add_IP(ws, col_from, col_to, row_begin: int = 11):
+    """Добавляем текст из колонки "Примечание" к тексту в другой колонке """
+
+    for row in range(row_begin, ws.max_row):
+        txt_from = str(ws.cell(row, column_index_from_string(col_from)).value)
+        txt_to = str(ws.cell(row, column_index_from_string(col_to)).value)
+        if txt_from:
+            ws.cell(row, column_index_from_string(col_to)).value = txt_from + ' ' + txt_to
+            ws.cell(row, column_index_from_string(col_from)).value = ''
+
 
 # %%
 
 if __name__ == "__main__":
     pass
-
-    # t1 = 'Паспорт иностранного гражданина, 07732966. Выдан Министерством внутренних дел, 16.11.2011 г. '
-    # t2 = 'Паспорт гражданина РФ, 6012 075791. Выдан: Отделом УФМС России по Ростовской области в городе Новочеркасске, 07.11.2011'
-    # t3 = 'Паспорт гражданина РФ, 12  34 075791. Выдан: Отделом УФМС России по Ростовской области в городе Новочеркасске, 07.11.2011'
-    #
-    # print (id_from_pasport(t1))
-
-    # id_fond = 'eeeee'
-    # txt = 'договор №345345 от'
-    # print(id_osnovaniya(txt))
